@@ -36,21 +36,16 @@ namespace antlr {
 	typedef ::KenshoParser_program_return ast_t;
 
 	// helper functions
-	inline std::string text(node_t node) {
+	inline std::string text(node_t& node, parser_t& parser) {
+		int type = node->getType(node);
+		std::string label(antlrTokenName(type));
 		string_t text = node->getText(node);
 		if (text != NULL) {
-			return std::string((char*)text->chars);
+			label += " [\"";
+			label += (char*)text->chars;
+			label += "\"]";
 		}
-		int type = node->getType(node);
-		switch (type) {
-			case LIT:
-				return "LIT";
-			case UNOP:
-				return "UNOP";
-			case BINOP:
-				return "BINOP";
-		}
-		return "[UNKNOWN]";
+		return label;
 	}
 
 	/*
@@ -151,7 +146,7 @@ namespace antlr {
 				return;
 			}
 			if (!node->isNilNode(node)) {
-				std::cout << indent << text(node) << "\n";
+				std::cout << indent << text(node, parser) << "\n";
 			}
 			int count = node->getChildCount(node);
 			for (int i = 0; i < count; ++i) {

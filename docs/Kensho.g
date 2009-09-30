@@ -1,3 +1,18 @@
+/* This file is part of Kensho.
+ * Kensho is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Kensho is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Kensho.  If not, see <http://www.gnu.org/licenses/>.
+ */
+ 
 grammar Kensho;
 
 options 
@@ -28,10 +43,13 @@ tokens
 	OP_AND			= '&&';
 	OP_OR			= '||';
 	
-	// TODO
-	// OP_BIT_AND		= '&';
-	// OP_BIT_OR		= '|';
-	// OP_XOR			= '^';
+	OP_BIT_AND		= '&';
+	OP_BIT_OR		= '|';
+	OP_XOR			= '^';
+	OP_SHIFT_L		= '<<';
+	OP_SHIFT_R		= '>>';
+	OP_USHIFT_L		= '<<<';
+	OP_USHIFT_R		= '>>>';
 	
 	CMP_EQ			= '==';
 	CMP_NEQ			= '!=';
@@ -61,6 +79,11 @@ tokens
 	LIT;
 	UNOP;
 	VARDEF;
+	CALL;
+}
+
+@parser::preincludes {
+	char* antlrTokenName(int type);
 }
 
 @parser::includes
@@ -71,6 +94,10 @@ tokens
 
 @parser::members
 {
+	char* antlrTokenName(int type) {
+		return (char*)KenshoParserTokenNames[type];
+	}
+	
 	bool isRightAssociative(ANTLR3_UINT32 type) {
 		switch (type) {
 			case OP_ASSIGN:
@@ -83,23 +110,32 @@ tokens
 		switch (type) {
 			// note: lowest number binds most tightly i.e. has highest precedence
 			case OP_MUL:
-			case OP_DIV:
+			case OP_DIV:		return 1;
 			
 			case OP_ADD:
-			case OP_SUB:	return 2;
-				
+			case OP_SUB:		return 2;
+			
+			case OP_SHIFT_L:
+			case OP_SHIFT_R:
+			case OP_USHIFT_L:
+			case OP_USHIFT_R:	return 3;
+			
 			case CMP_LT:
 			case CMP_LTE:
 			case CMP_GT:	
-			case CMP_GTE:	return 3;
+			case CMP_GTE:		return 4;
 				
 			case CMP_EQ:
-			case CMP_NEQ:	return 4;	
-				
-			case OP_AND:	return 5;
-			case OP_OR:		return 6;
+			case CMP_NEQ:		return 5;
 			
-			case OP_ASSIGN:	return 7;
+			case OP_BIT_AND:	return 6;
+			case OP_XOR:		return 7;
+			case OP_BIT_OR:		return 8;
+				
+			case OP_AND:		return 9;
+			case OP_OR:			return 10;
+			
+			case OP_ASSIGN:		return 11;
 		
 			default:
 				// missing switch case
@@ -222,12 +258,12 @@ program
 	
 function
 	:	signature t=BRACE_L statement* BRACE_R
-		-> ^(FUNDEF[$t, "FUNDEF"] signature statement*)
+		-> ^(FUNDEF[$t] signature statement*)
 	;	
 	
 signature
 	:	functionType ID t=PAREN_L params? PAREN_R
-		-> ^(FUNSIG[$t, "FUNSIG"] functionType ID params?) 
+		-> ^(FUNSIG[$t] functionType ID params?) 
 	;
 	
 functionType
@@ -236,7 +272,7 @@ functionType
 		
 params
 	:	type t=ID ( COMMA type ID )*
-		-> ^(ARGDEF[$t, "ARGDEF"] type ID)+
+		-> ^(ARGDEF[$t] type ID)+
 	;
 
 statement
@@ -246,12 +282,12 @@ statement
 	
 variable
 	:	type t=ID ( OP_ASSIGN expression )?
-		-> 	^(VARDEF[$t, "VARDEF"] type ID) 
+		-> 	^(VARDEF[$t] type ID) 
 			^(BINOP OP_ASSIGN ID expression)? 
 	;
 
 args
-	:	expression ( COMMA expression )*
+	:	expression ( COMMA! expression )*
 	;
 
 type
@@ -296,6 +332,7 @@ atom
 	
 call
 	:	ID PAREN_L args? PAREN_R
+		-> ^(CALL ID args*)
 	;
 
 literal
@@ -321,6 +358,13 @@ binop
 	|	OP_ASSIGN
 	|	OP_AND
 	|	OP_OR
+	|	OP_XOR
+	|	OP_BIT_AND
+	|	OP_BIT_OR
+	|	OP_SHIFT_L
+	|	OP_SHIFT_R
+	|	OP_USHIFT_R
+	|	OP_USHIFT_L
 	|	CMP_EQ
 	|	CMP_NEQ
 	|	CMP_GT
