@@ -1,0 +1,705 @@
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+                   Kensho Language Specification
+                           Status: draft
+                  (c) 2009 by Stefan Oestreicher
+ 
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 
+ Preface
+ ========================================================================
+ This document describes the Kensho programming language. Because the 
+ implementation of Kensho is an educational exercise this specification
+ describes the language at various evolutionary stages in an attempt
+ to ease the implementation process. This document will refer to 
+ Kensho-M[0-9]+ (e.g. Kensho-M3) to differentiate between requirements 
+ that concern only a specific milestone versus requirements that apply 
+ to all milestones.
+ 
+ The Kensho programming language will be implemented utilizing the LLVM
+ project. Therefore this document will refer to LLVM terminology and
+ actual LLVM assembly where appropriate in order to specify the language. 
+ 
+ 
+ Kensho design goals
+ ------------------------------------
+ The following is a list of goals that must or should be reached by the Kensho
+ language implementation.
+ 
+ Kensho
+  * must have Java-like syntax
+  * must be safe like Java for example (i.e. in the sense that it 
+    cannot crash its address space)
+  * should support garbage collection as well as explicit memory management
+ 
+ 
+ Non-Goals
+ ------------------------------------
+ The following is a list of goals that must not be reached by the Kensho
+ implementation.
+ 
+ Kensho must not
+  * provide dynamic typing
+  * provide direct memory access and/or pointer arithmetic
+  * turn into a Java implementation
+  * turn into a scripting language
+  * be as ugly as Perl
+ 
+ 
+ Introduction
+ ========================================================================
+ To give a general impression about the language, I will present the
+ obligatory hello world example.
+ 
+ int main(string[] args) {
+ 	system.println("hello world");
+ 	return 0;
+ }
+ 
+ This looks pretty much like Java except for system.println instead of 
+ System.out.println. Also main returns an integer instead of void, 
+ just like in C. Obviously Kensho's syntax is heavily influenced by the Java 
+ language but aside from that they have not much in common.
+  
+ 
+ Milestone 1
+ ========================================================================
+ In this section I will define the core language that comprises the
+ first implementation milestone. Later milestones build upon this core
+ definition. 
+ 
+ 
+ Kensho program structure
+ ------------------------------------
+ Kensho programs are structured similar to C programs. But there is no global
+ scope for variables. At the top level only functions can be declared.
+ The following section describes the program structure using EBNF.
+ 
+ program	:=	function*
+ 
+ A function is defined by its name, return type and the types of its 
+ parameters. The function name serves as unique identifier therefore
+ no two functions can have the same name (note: function overloading
+ will be implemented in a later milestone.)
+ 
+ function 	:=	type ID '(' params? ')' '{' statement* '}'
+ params		:=	type ID ( ',' type ID )*
+ 
+ The body of a function consists of a series of statements. A statement
+ can be either a return statement, a block, an expression or a variable
+ declaration. A return statement in Kensho is no different than in Java. 
+ 
+ return		:=	'return' expression? ';'
+ 
+ A block is what Kensho calls its control-flow structures. In Kensho-M1 those 
+ are the if-structure and the while-structure.
+ 
+ if			:=	'if' '(' expression ')' '{' statement* '}'
+ 	  			( 'else' 'if' '(' expression ')' '{' statement* '}' )*
+ 	  			( 'else' '{' statement* '}' )?
+ 	  	
+ while 		:= 	'while' '(' expression ')' '{' statement* '}'
+ 	  	
+ Note that Kensho requires the statements in the block body to be enclosed in 
+ braces. Also note that the while loop in M1 does not support an empty body 
+ of the form 'while' '(' expression ')' ';'.	
+ 
+ An expression in Kensho-M1 can either be a function call, a literal value, a 
+ variable or a binary operation.
+ 
+ expression	:=	literal | binary | ID | call
+ call		:= 	ID '(' arguments? ')'
+ arguments	:=	expression ( ',' expression )*
+ binary		:=  expression op expression
+ 
+ A variable declaration should also look very familiar:
+ 
+ variableDef 	:= 	type ID
+	
+ Data types
+ ------------------------------------
+ Kensho-M1 must implement the primitive data types with their 
+ corresponding LLVM IR type as listed in the following table. 
+ 
+ +-------------+-------------+
+ | Kensho      | LLVM        |
+ +-------------+-------------+
+ | bool        | i1          |
+ | byte        | i8          |
+ | short       | i16         |
+ | int         | i32         |
+ | char        | i32         |
+ | long        | i64         |
+ | float       | float       |
+ | double      | double      |
+ +-------------+-------------+
+  
+ Additionally to those ordinary numeric types Kensho-M1 must implement the
+ special void type which is only applicable as function return type.
+ All numeric types (not bool) must be treated as signed values at all times. 
+ Kensho must allow type mismatches in expressions in which case Kensho must 
+ resolve it by implicitly casting the smaller to the bigger type if this is 
+ possible without loss of precision. Any other conversion must be performed 
+ explicitly. See the typecasting section.
+ 
+ Operators
+ ------------------------------------
+ Kensho-M1 must implement the following binary operators:
+  * addition 			+
+  * subtraction			-
+  * multiplication		*
+  * division			/
+  * boolean and			&&
+  * boolean or			||
+  * bitwise and			&
+  * bitwise or			|
+  * bitwise xor			^
+  * assignment			=
+  * equal				==
+  * not equal			!=
+  * less than			<
+  * greater than		>
+  * less or equal		<=
+  * greater or equal	>=
+ 
+ Additionally it must implement the follwing unary operators:
+  * unary plus			+
+  * unary minus			-
+  * boolean not			!
+  * bitwise not			~
+  
+ Kensho must also implement juxtaposition for string concatenation. That means
+ 
+ string a = "foo" "bar"
+ 
+ is the equivalent of this Java code:
+ 
+ String a = "foo" + "bar"
+ 
+ Obviously this is also valid code then:
+ 
+ foobar(a b c "e" 2+3 "f");
+ 
+ Note that thanks to juxtaposition there is no ambiguity in how to interpret
+ the operators.
+ 
+ 
+ Typecasting
+ ------------------------------------
+ As mentioned prevously Kensho must automatically promote numeric types
+ if this is possible without precision loss. It must never demote a type even
+ if it were possible without precision loss. Of course this only applies
+ to numerical values.
+ 
+ Literal values
+ ------------------------------------
+ Kensho-M1 must support the following numeric literal values:
+ 
+  * octal integers			0[0-7]+
+  * hex integers			0x[0-9a-f]+
+  * integers				[0-9]+
+  * integers with exp		[0-9][eE][\+-][0-9]+
+  * double					[0-9]?\.[0-9]+
+  * double with exp			[0-9]?\.[0-9]+[eE][\+-][0-9]+
+  
+ Every numeric literal must support a one-character suffix which indicates
+ to the compiler that it should be treated as a specific type. Example:
+ 
+ float pi = 3.1415;
+ 
+ must result in a compile error because "3.1415" is recognized by the compiler
+ as a double literal, however this must work:
+ 
+ float pi = 3.1415f;
+ float pi = (float)3.1415;
+ 
+ This only applies to the floating point type. For integral numeric types
+ the compiler must decide based on the size of the literal value if an overflow
+ would occur and if so bail out with an error.
+ 
+ The following suffixes must be supported case-insensitively.
+ 
+  * float		F
+  * double		D
+  * long		L 
+  
+ Kensho must also support literal characters which are enclosed in single quotes.
+ Additionally to literal characters it must recognize the following 
+ escape sequences for non-printable characters:
+ 
+  * newlines			'\n'
+  * tabs				'\t'
+  * carriage return		'\r'
+  
+ Example:
+ char foo = 'x';
+ char bar = '\n';
+ int a = 026;
+ int b = 0x7fa63;
+ int c = 2e3
+ float d = .3e-8
+ 
+ Scope
+ ------------------------------------
+ Kensho-M1 only knows one scope which is the function scope. Variables can 
+ only be declared in a function body and are only visible in that function.
+ Control-flow structure bodies do not introduce a new scope. 
+ Example:
+ 
+ void foo(int x) {
+ 	if (x > 3) {
+ 		int y = 0;
+ 		// do something with y
+ 	}
+ 	// do something else
+ 	int y = 3;
+ }
+ 
+ While this would be valid Java because the if construct introduces a new
+ scope and the declaration of y is no longer in scope after the branch
+ Kensho-M1 must generate a compile error because y is already declared
+ at that point.
+ 
+ 
+ Compilation unit
+ ------------------------------------
+ A compilation unit in Kensho-M1 is a single source file. A program in M1
+ always consists of a single compilation unit. Support for programs that 
+ consist of multiple compilation units will be added in a later milestone.
+ 
+ 
+ Native interface
+ ------------------------------------
+ Kensho programs can call native code through Kenni, the 
+ [Ken]sho [N]t[i]ve interface. Routines that are implemented in native code
+ through Kenni must be declared as native functions in the Kensho program
+ that wants to use them. This very much resembles the Java native interface.
+ 
+ native void kenni_example(int);
+  
+ As you can see, just like with the JNI, the function is declared with the
+ native keyword and it doesn't have an implementation (on the Kensho side 
+ at least).
+ The native example function declared above can be called like any other
+ Kensho function:
+ 
+ kenni_example(42);
+ 
+ Here's the EBNF for native functions:
+ 
+ nativeFunction	:=	'native' type ID '(' nativeParams? ')' ';'
+ nativeParams	:= 	type ( ',' type )*
+ 
+ 
+ Implementing native functions
+ ------------------------------------
+ Using LLVMs JIT functionality we can lazily construct functions on the fly
+ so we can support any native implementation scheme imaginable.
+ In any case, if the user wants to use custom native code in the program
+ it must be compiled into a shared library which can then be loaded
+ by the VM at runtime.
+ 
+ The language core library
+ ------------------------------------
+ The core library implements parts of the Kensho core language in itself.
+ It is therefore required by any Kensho program and must automatically 
+ be linked into the program by the compiler.
+ In order to implement low level operations, e.g. I/O, in the language itself
+ it must be possible to interface with native code.
+ This native code is contained in the runtime support library which is 
+ therefore an integral part of the core library.
+ 
+ Because Kensho-M1 must only provide one scope in which to declare functions
+ (i.e. it has no namespace/package support) it is impossible to declare
+ a user-defined function with the same name as a library function.
+ Therefore the core library in M1 is just a collection of, possibly native, 
+ functions and they all reside in the global namespace.
+ 
+ The following list describes the functions that the M1 library must provide.
+ 
+ // prints an integer to stdout
+ void iprint(int);
+ 
+ // prints and integer followed by a linefeed to stdout
+ void iprintln(int);
+ 
+ // prints a character to stdout
+ void cprint(char);
+ 
+ // prints a character followed by a linefeed to stdout
+ void cprintln(char);
+ 
+ 
+ Milestone 2
+ ========================================================================
+ While the first milestone already defines a pretty complete programming
+ language it is still very limited. This milestone introduces new language
+ features that will address those shortcomings.
+ 
+ This milestone will introduce the following concepts:
+  * arrays
+  * structs
+  * strings
+  * for-loop
+ 
+ 
+ Arrays
+ ------------------------------------
+ Arrays in Kensho are not directly mapped to their LLVM IR counterpart but
+ to a struct which contains the actual array and its size. Kensho arrays can
+ be multidimensional. Array declarations use the same syntax as their Java
+ counterpart. Kensho array indices are zero-based. Arrays are reference types,
+ i.e. only their memory address is passed around.
+ EBNF definition of the array type:
+ 
+ arrayType 		:=	type ( '[' ']' )+
+ 
+ Example declarations with their LLVM counterpart:
+ +----------------------+-----------------------------------------------+
+ | Kensho				| LLVM											|
+ +----------------------+-----------------------------------------------+
+ | int[] foo;			| { i32, [ 0 x i32 ]* }							|
+ | double[][] bar;		| { i32, [ 0 x { i32,  [ 0 x double ]* } ]* }  	|
+ +----------------------+-----------------------------------------------+
+ 
+ A Kensho array is dynamically allocated and statically sized. Access to
+ its elements works as is known from Java et. al.
+ 
+ arrayAccess	:=	ID ( '[' expression ']' )+
+ 
+ Example:
+ int[] foo; 
+ foo[3]; // access 4th element
+ int[][] bar;
+ bar[4][1] // access 2nd element of 5th element
+ 
+ Note that the above example must not compile because Kensho must not support
+ uninitialized reference values.
+ Arrays can be initialized statically, using notation similar to ECMA Script:
+ 
+ arrayInitializer	:=	type '[' expression ( ',' expression )+ ']'
+ 
+ Example:
+ int[] foo = [ 1, 2, 3 ];
+ int[][] bar = [[ 1, 2 ], [ 3, 4 ]]; 
+ 
+ Or they can be initialized dynamically. Example:
+ // create integer array with 3 elements
+ int[] foo = int[3];
+ // create integer array with 2 elements each of which
+ // are integer arrays with 4 elements 
+ int[][] bar = int[2][4];
+ 
+ This would result in the following IR for the "foo" array:
+ 
+ ; allocate struct
+ alloca { i32, [ 0 x i32 ]* }
+ ; get pointer to array pointer
+ %ppArr = getelementptr { i32, [ 0 x i32 ]* }, i32 0, i32 1
+ ; get ptr to size element
+ %pSize = getelementptr { i32, [ 0 x i32 ]* }, i32 0, i32 0
+ ; allocate memory for 3 x i32
+ %pArr = alloca [ 3 x i32 ]
+ ; store ptr to allocated memory in the array pointer
+ store i32* %pArr, i32** %ppArr
+ ; store size 
+ store i32 3, %pSize
+ 
+ The example code dynamically allocates the arrays on the stack. Kensho can
+ also allocate them on the heap using the "new" keyword. Without garbage
+ collection in M2 however the memory allocated by the "new" keyword
+ has to be freed again using the "delete" keyword. Arrays that were allocated
+ on the stack cannot be returned by the function because they're freed
+ automatically when the function returns. 
+ Example:
+ 
+ // allocate 1kB buffer
+ byte[] buffer = new byte[1024];
+ 
+ // ... do some work with buffer ...
+ 
+ // release the memory allocated for buffer
+ delete buffer;
+ 
+ This would result in the following IR for the "byte" array:
+ 
+ ; allocate struct
+ alloca { i32, [ 0 x i32 ]* }
+ ; get pointer to array pointer
+ %ppArr = getelementptr { i32, [ 0 x i32 ]* }, i32 0, i32 1
+ ; get ptr to size element
+ %pSize = getelementptr { i32, [ 0 x i32 ]* }, i32 0, i32 0
+ ; allocate memory for 1024 x i32
+ %pArr = malloc [ 1024 x i32 ]
+ ; store ptr to allocated memory in the array pointer
+ store i32* %pArr, i32** %ppArr
+ ; store size
+ store i32 1024, %pSize
+ ; free buffer again
+ free [ 1024 x i32 ]* %pArr
+ 
+ Note that Kensho-M2 will not free memory that was allocated on the heap
+ automatically as it does not implement garbage collection. Heap-allocated
+ memory *must* be freed by the user or the program will leak memory.
+ 
+ 
+ Array functions
+ ------------------------------------
+ Kensho must expose the array as struct synthesizing the following
+ struct members:
+ 
+ // the length of the array
+ int length
+ 
+ // slice the array of type T[] and return new array T[]
+ T[] slice(T[] array, int start, int end)
+ 
+ // find array element of type T and return it's index or -1
+ int find(T[] array, T element) 
+ 
+ 
+ Structs
+ ------------------------------------
+ Now that we have defined arrays as actually being structs Kensho needs
+ a way to deal with those, i.e. access struct elements. 
+ Instead of introducing special handling for array functions 
+ Kensho must introduce generic struct support alongside arrays.
+ 
+ Structs in Kensho can shortly be described as classes without polymorphism.
+ Let's see an example:
+ 
+ struct MyStruct
+ { 	
+ 	// public member variable
+ 	int myPublicVar;
+
+ 	new() {
+ 		// constructor
+ 	}
+ 	
+ 	delete {
+ 		// destructor
+ 	}
+ 	
+ 	void myFunction() {
+ 		// do something useful
+ 	}
+ 	
+ 	static void myOtherFunction() {
+ 		// do some other useful thing
+ 	}
+ }
+ 
+ As you can see it's really pretty much like Java classes stripped of 
+ inheritance. Let's see the EBNF:
+ 
+ struct			:=	'struct' ID '{' structBody* '}'
+ structBody		:=	structVar | ctor | dtor | structFunc
+ structVar		:=	type ID ';'
+ ctor			:=  'new' '(' params? ')' '{' statement* '}'
+ dtor			:=	'delete' '{' statement* '}'
+ structFunc		:=	'static'? type ID '(' params? ')' '{' statement* '}'
+ 
+ Because structs contain members which could be structs that contain members
+ and so on ad infinitum/nausea Kensho-M2 must introduce an operator that allows 
+ to navigate those structures. This is the member access operator which is
+ represented by the "." (dot). For a struct variable it translates to the 
+ LLVM getelementptr instruction.
+ 
+ Like arrays (they're structs after all) struct instances are allocated on the 
+ heap with the "new" keyword. Example:
+ 
+ MyStruct foo = new MyStruct();
+ 
+ Because they're allocated on the heap the user needs to release the allocated
+ memory manually. This is achieved using the "delete" keyword:
+ 
+ delete foo;
+ 
+ Note that this works exactly the same as with arrays. Also, just like arrays,
+ structs can also be allocated on the stack:
+ 
+ // allocate foo on the stack
+ MyStruct foo = MyStruct();
+ 
+ Translation to LLVM
+ ------------------------------------
+ Since structs are available types in LLVM assembly we can pretty much
+ translate them directly.
+ Given this simple source:
+ 
+ struct Simple {
+ 	int x;
+ 	double y;
+ 	new() {
+ 		x = 5;
+ 		y = 1.25;
+ 	}
+ 	delete {
+ 		// cleanup
+ 	}
+ 	void foo() {
+ 		// do something
+ 	}
+ 	static void bar() {
+ 		// do something
+ 	}
+ }
+ double foo() {
+ 	Simple simple = Simple();
+ 	simple.x = 3;
+ 	simple.foo();
+ 	return simple.y;
+ }
+ 
+ Kensho-M2 must emit the following LLVM IR:
+ 
+ %Simple = type { i32, double }
+ 
+ @define void Simple.new(%Simple* %this) {
+ 	%x = getelementptr %Simple* %ptr, i32 0, i32 0
+ 	store i32 5, %x
+ 	%y = getelementptr %Simple* %ptr, i32 0, i32 1
+ 	store double 1.25, %y
+ }
+ 
+ @define void Simple.delete(%Simple* %this) {
+ 	ret void
+ }
+ 
+ @define void Simple.foo(%Simple* %this) {
+ 	ret void
+ }
+ 
+ @define void Simple.bar() {
+ 	ret void
+ }
+ 
+ @define double foo() {
+ 	%ptr = alloca %Simple
+ 	%x = getelementptr %Simple* %ptr, i32 0, i32 0
+ 	store i32 3, i32* %x
+ 	call void Simple.foo(%Simple* %ptr);
+ 	%y = getelementptr %Simple* %ptr, i32 0, i32 1
+ 	ret %y
+ }
+ 
+ 
+ Strings
+ ------------------------------------
+ With the introduction of arrays and structs it is now feasible to deal 
+ with character strings.
+ The string struct must be part of the core language library but is 
+ only an ordinary Kensho struct wrapping a character array.
+ 
+ Example source (incomplete concept draft):
+ 
+ struct string 
+ {
+ 	char[] chars;
+ 
+ 	this(char[] chars) {
+ 		this.chars = chars;
+ 	}
+ 	
+ 	int indexOf(char c) {
+ 		return chars.find(c);
+ 	}
+ 	
+ 	string substring(int start, int end) {
+ 		return new string(chars.slice(start, end));
+ 	}
+ 	
+ 	int length() {
+ 		return chars.length;
+ 	}
+ }
+ 
+ Kensho must support literal strings in source code which are translated
+ to an instance of the string struct. Kensho must support unicode and all
+ Kensho strings must use the UTF8 encoding.
+ 
+ 
+ For-Loop
+ ------------------------------------  
+ Kensho-M2 must introduce the for-loop known from other languages such as C.
+ Here's the EBNF:
+ 
+ for		:=	'for' '(' forExpr ')' '{' statement* '}'
+ forExpr	:=	forInit? ';' forCond ';' forPost?
+ forInit	:= ( variable | expression ) ( ',' forInit )?
+ forCond	:= expression
+ forPost	:= expression ( ',' expression )* 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
+  
+  TODO items
+  
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 
+ must have:
+ 
+  * function overloading
+  * exception handling
+  * garbage collection
+  * program libraries
+  * dynamic code loading at runtime
+  * generic types
+  * OOP
+  * reflection
+ 
+ should have:
+ 
+  * first class functions
+  * closures
+  * class invariants
+  * unit tests
+  
+ nice to have:
+ 
+  * AOP
+  * template programming
+  * macros (lisp)
+   
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
