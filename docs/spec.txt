@@ -8,6 +8,24 @@
  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  
+ License
+ ========================================================================
+ This document is licensed under the Creative Commons 
+ Attribution-Noncommercial-No Derivative Works 3.0 Austria license.
+ See http://creativecommons.org/licenses/by-nc-nd/3.0/at/legalcode for more
+ information. 
+ 
+ In short, you're free to share this document under the following conditions:
+ 
+  * Attribution — You must attribute the work in the manner specified by the 
+    author or licensor (but not in any way that suggests that they endorse you 
+    or your use of the work).
+  * Noncommercial — You may not use this work for commercial purposes.
+  * No Derivative Works — You may not alter, transform, or build upon this work.
+  
+ This summary is also available in your language on
+ http://creativecommons.org/licenses/by-nc-nd/3.0/at/deed.en.
+ 
  Preface
  ========================================================================
  This document describes the Kensho programming language. Because the 
@@ -147,22 +165,26 @@
  Operators
  ------------------------------------
  Kensho-M1 must implement the following binary operators:
-  * addition 			+
-  * subtraction			-
-  * multiplication		*
-  * division			/
-  * boolean and			&&
-  * boolean or			||
-  * bitwise and			&
-  * bitwise or			|
-  * bitwise xor			^
-  * assignment			=
-  * equal				==
-  * not equal			!=
-  * less than			<
-  * greater than		>
-  * less or equal		<=
-  * greater or equal	>=
+  * addition 					+
+  * subtraction					-
+  * multiplication				*
+  * division					/
+  * boolean and					&&
+  * boolean or					||
+  * bitwise and					&
+  * bitwise or					|
+  * bitwise xor					^
+  * assignment					=
+  * equal						==
+  * not equal					!=
+  * less than					<
+  * greater than				>
+  * less or equal				<=
+  * greater or equal			>=
+  * right bitshift				>>
+  * left bitshift				<<
+  * right unsigned bitshift		>>>
+  * left unsigned bitshift		<<<
  
  Additionally it must implement the follwing unary operators:
   * unary plus			+
@@ -273,7 +295,7 @@
  Native interface
  ------------------------------------
  Kensho programs can call native code through Kenni, the 
- [Ken]sho [N]t[i]ve interface. Routines that are implemented in native code
+ [Ken]sho [N]ative [i]nterface. Routines that are implemented in native code
  through Kenni must be declared as native functions in the Kensho program
  that wants to use them. This very much resembles the Java native interface.
  
