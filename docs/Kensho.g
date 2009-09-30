@@ -80,6 +80,7 @@ tokens
 	UNOP;
 	VARDEF;
 	CALL;
+	CAST;
 }
 
 @parser::preincludes {
@@ -328,6 +329,7 @@ atom
 	|	call
 	|	ID
 	|	PAREN_L! expression PAREN_R!
+	|	PAREN_L type PAREN_R atom -> ^(CAST type atom)
 	;
 	
 call
