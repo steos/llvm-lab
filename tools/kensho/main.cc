@@ -26,6 +26,7 @@
 	enum ExitCode {
 		EXIT_OK = 0,
 		EXIT_USAGE_ERROR = -1,
+		EXIT_PARSE_ERROR = -2,
 		EXIT_ERROR = -99
 	};
 
@@ -103,6 +104,14 @@
 			antlr::ast_t ast = parser.parse();
 			parser.dumpNode(ast.tree);
 
+		}
+		catch (antlr::ParseError& e) {
+			std::cout << e.getMessage();
+			if (e.getLine() > 0) {
+				std::cout << " on line " << e.getLine();
+			}
+			std::cout << "\n";
+			return EXIT_PARSE_ERROR;
 		}
 		catch (Error& e) {
 			std::cout << e.getMessage() << "\n";

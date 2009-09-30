@@ -27,9 +27,11 @@ tokens
 	OP_BIT_NOT 		= '~';
 	OP_AND			= '&&';
 	OP_OR			= '||';
-	OP_BIT_AND		= '&';
-	OP_BIT_OR		= '|';
-	OP_XOR			= '^';
+	
+	// TODO
+	// OP_BIT_AND		= '&';
+	// OP_BIT_OR		= '|';
+	// OP_XOR			= '^';
 	
 	CMP_EQ			= '==';
 	CMP_NEQ			= '!=';
@@ -39,7 +41,9 @@ tokens
 	CMP_GTE			= '>=';
 	
 	OP_ASSIGN		= '=';
-	OP_DOT			= '.';
+
+	// TODO
+	// OP_DOT			= '.';
 	
 	// misc
 	BRACE_L			= '{';
@@ -56,6 +60,7 @@ tokens
 	BINOP;
 	LIT;
 	UNOP;
+	VARDEF;
 }
 
 @parser::includes
@@ -235,7 +240,18 @@ params
 	;
 
 statement
-	:	expression SEMICOLON!
+	:	variable SEMICOLON!
+	|	expression SEMICOLON!
+	;
+	
+variable
+	:	type t=ID ( OP_ASSIGN expression )?
+		-> 	^(VARDEF[$t, "VARDEF"] type ID) 
+			^(BINOP OP_ASSIGN ID expression)? 
+	;
+
+args
+	:	expression ( COMMA expression )*
 	;
 
 type
@@ -247,18 +263,8 @@ type
 	|	T_FLOAT
 	|	T_DOUBLE
 	;
-	
+
 expression
-@init
-{
-	std::vector<pANTLR3_BASE_TREE> expressions;
-	std::vector<pANTLR3_COMMON_TOKEN> operators;
-}
-	:	binaryExpression
-	| 	unop binaryExpression -> ^(UNOP unop binaryExpression)
-	;	
-	
-binaryExpression
 @init
 {
 	std::vector<pANTLR3_BASE_TREE> expressions;
@@ -266,7 +272,7 @@ binaryExpression
 }
 	:	left=primary { expressions.push_back($left.tree); } 
 		( 
-			binop right=primary 
+			binop right=primary
 			{ 
 				operators.push_back($binop.start); 
 				expressions.push_back($right.tree); 
@@ -277,9 +283,19 @@ binaryExpression
 	;	
 	
 primary
+	:	atom
+	|	unop atom -> ^(UNOP unop atom)
+	;
+	
+atom
 	:	literal -> ^(LIT literal)
+	|	call
 	|	ID
 	|	PAREN_L! expression PAREN_R!
+	;
+	
+call
+	:	ID PAREN_L args? PAREN_R
 	;
 
 literal
@@ -302,4 +318,13 @@ binop
 	| 	OP_SUB 
 	| 	OP_MUL 
 	| 	OP_DIV
+	|	OP_ASSIGN
+	|	OP_AND
+	|	OP_OR
+	|	CMP_EQ
+	|	CMP_NEQ
+	|	CMP_GT
+	|	CMP_GTE
+	|	CMP_LT
+	|	CMP_LTE
 	;
