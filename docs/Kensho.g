@@ -187,10 +187,6 @@ tokens
 		pANTLR3_BASE_TREE root = (pANTLR3_BASE_TREE)ADAPTOR->nilNode(ADAPTOR);
 		root = (pANTLR3_BASE_TREE)ADAPTOR->becomeRootToken(
 			ADAPTOR, rootTok, root);	
-		//pANTLR3_BASE_TREE objRoot = (pANTLR3_BASE_TREE)ADAPTOR->nilNode(ADAPTOR);
-		//objRoot = (pANTLR3_BASE_TREE)ADAPTOR->becomeRootToken(
-		//	ADAPTOR, operators.at(pivot), objRoot);
-		//assert(objRoot != NULL);
 		ADAPTOR->addChildToken(ADAPTOR, root, operators.at(pivot));
 		ADAPTOR->addChild(ADAPTOR, root, createPrecedenceTree(
 			ctx, expressions, operators, start, pivot));
