@@ -24,6 +24,7 @@ options
 
 tokens 
 {
+	// types
 	T_BOOL 			= 'bool';
 	T_BYTE 			= 'byte';
 	T_SHORT 		= 'short';
@@ -34,6 +35,7 @@ tokens
 	T_DOUBLE 		= 'double';
 	T_VOID 			= 'void';
 	
+	// operators
 	OP_ADD 			= '+';
 	OP_SUB 			= '-';
 	OP_MUL 			= '*';
@@ -62,6 +64,13 @@ tokens
 
 	// TODO
 	// OP_DOT			= '.';
+	
+	// keywords
+	K_IF			= 'if';
+	K_ELSE			= 'else';
+	K_WHILE			= 'while';
+	LITERAL_TRUE	= 'true';
+	LITERAL_FALSE	= 'false';
 	
 	// misc
 	BRACE_L			= '{';
@@ -197,61 +206,6 @@ tokens
 		return createPrecedenceTree(ctx, expressions, operators, 0, expressions.size() - 1);
 	}
 }
-
-fragment
-LETTER	
-	:	'a'..'z' | 'A'..'Z'
-	;
-
-fragment
-DIGIT
-	:	'0'..'9'
-	;
-	
-fragment
-HEXDIGIT
-	:	DIGIT | 'a'..'f' | 'A'..'F'
-	;
-	
-fragment
-EXPONENT
-	:	( 'e' | 'E' ) ( '+' | '-' )? DIGIT+
-	;
-	
-WS	
-	:	(' ' | '\t' | '\n' | '\r') 
-		{ $channel=HIDDEN; }
-	;
-	
-LINE_COMMENT
-	:	( '#' | '//' ) ~('\r'|'\n')* '\r'? '\n'
-		{ $channel = HIDDEN; }
-	;
-	
-BLOCK_COMMENT
-	:	'/*' ( options { greedy=false; } : . )* '*/' 
-		{ $channel = HIDDEN; }
-	;
-	
-LITERAL_OCT
-	:	'0' ( '0'..'7' )+ 
-	;
-	
-LITERAL_HEX
-	:	'0x' ( HEXDIGIT )+
-	;
-	
-LITERAL_INT
-	:	DIGIT+ EXPONENT? ( 'l' | 'L' | 'f' | 'F' | 'd' | 'D' )?
-	;
-
-LITERAL_FLOAT
-	:	DIGIT* '.' DIGIT+ EXPONENT? ( 'f' | 'F' | 'd' | 'D' )?
-	;
-		
-ID	
-	:	LETTER ( LETTER | DIGIT )*
-	;
 	
 program
 	:	function*
@@ -279,7 +233,35 @@ params
 statement
 	:	variable SEMICOLON!
 	|	expression SEMICOLON!
+	|	ifStat
+	|	whileStat
 	;
+	
+block
+	:	BRACE_L! statement* BRACE_R!
+	;	
+	
+ifStat
+	:	K_IF PAREN_L expression PAREN_R block 
+		elseIfStat*
+		elseStat?
+		
+	->	^(K_IF expression block 
+			^(K_IF elseIfStat)* 
+			^(K_ELSE elseStat)? )
+	;
+	
+elseIfStat
+	:	K_ELSE! K_IF! PAREN_L! expression PAREN_R! block
+	;
+
+elseStat
+	:	K_ELSE! block
+	;
+
+whileStat
+	:	K_WHILE^ PAREN_L! expression PAREN_R! block
+	;	
 	
 variable
 	:	type t=ID ( OP_ASSIGN expression )?
@@ -295,6 +277,7 @@ type
 	:	T_BOOL
 	|	T_BYTE
 	|	T_SHORT
+	|	T_CHAR
 	|	T_INT
 	|	T_LONG
 	|	T_FLOAT
@@ -343,6 +326,9 @@ literal
 	|	LITERAL_OCT
 	|	LITERAL_HEX
 	|	LITERAL_FLOAT
+	|	LITERAL_TRUE
+	|	LITERAL_FALSE
+	|	LITERAL_CHAR
 	;
 	
 unop
@@ -373,4 +359,80 @@ binop
 	|	CMP_GTE
 	|	CMP_LT
 	|	CMP_LTE
+	;
+
+	
+/****************************************************************************
+
+	lexer rules
+
+ ****************************************************************************/
+ 
+fragment
+LETTER	
+	:	'a'..'z' | 'A'..'Z'
+	;
+
+fragment
+DIGIT
+	:	'0'..'9'
+	;
+	
+fragment
+HEXDIGIT
+	:	DIGIT | 'a'..'f' | 'A'..'F'
+	;
+	
+fragment
+EXPONENT
+	:	( 'e' | 'E' ) ( '+' | '-' )? DIGIT+
+	;
+
+fragment
+UNICODE_SEQ
+	:	'u' HEXDIGIT HEXDIGIT HEXDIGIT HEXDIGIT
+	;
+	
+fragment
+ESCSEQ
+	:	'\\' ( 't' | 'n' | 'r' | '\\' | UNICODE_SEQ )
+	;
+	
+WS	
+	:	(' ' | '\t' | '\n' | '\r') 
+		{ $channel=HIDDEN; }
+	;
+	
+LINE_COMMENT
+	:	( '#' | '//' ) ~('\r'|'\n')* '\r'? '\n'
+		{ $channel = HIDDEN; }
+	;
+	
+BLOCK_COMMENT
+	:	'/*' ( options { greedy=false; } : . )* '*/' 
+		{ $channel = HIDDEN; }
+	;
+	
+LITERAL_OCT
+	:	'0' ( '0'..'7' )+ 
+	;
+	
+LITERAL_HEX
+	:	'0x' ( HEXDIGIT )+
+	;
+	
+LITERAL_INT
+	:	DIGIT+ EXPONENT? ( 'l' | 'L' | 'f' | 'F' | 'd' | 'D' )?
+	;
+
+LITERAL_FLOAT
+	:	DIGIT* '.' DIGIT+ EXPONENT? ( 'f' | 'F' | 'd' | 'D' )?
+	;
+		
+ID	
+	:	LETTER ( LETTER | DIGIT )*
+	;
+	
+LITERAL_CHAR
+	:	'\'' ( ESCSEQ | ~('\'' | '\r' | '\n' )) '\''
 	;
