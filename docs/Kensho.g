@@ -71,6 +71,7 @@ tokens
 	K_WHILE			= 'while';
 	LITERAL_TRUE	= 'true';
 	LITERAL_FALSE	= 'false';
+	K_NATIVE		= 'native';
 	
 	// misc
 	BRACE_L			= '{';
@@ -90,6 +91,7 @@ tokens
 	VARDEF;
 	CALL;
 	CAST;
+	KENNIDEF;
 }
 
 @parser::preincludes {
@@ -204,7 +206,12 @@ tokens
 }
 	
 program
-	:	function*
+	:	( function | kenniFunction )*
+	;
+	
+kenniFunction
+	:	t=K_NATIVE functionType ID PAREN_L ( type ( COMMA type )* )? PAREN_R SEMICOLON
+	->	^(KENNIDEF[$t] functionType ID type*) 
 	;
 	
 function
