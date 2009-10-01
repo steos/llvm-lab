@@ -13,13 +13,12 @@
  * along with Kensho.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <error.hpp>
 #include <iostream>
 #include <vector>
 #include <string>
 
-// always include antlr last
-#include <antlr.hpp>
+// always include antlr last!
+#include <parser.hpp>
 
 	using namespace kensho;
 
@@ -100,12 +99,12 @@
 			}
 
 			const std::string file = op.files.at(0);
-			antlr::Parser parser(file);
+			Parser parser(file);
 			antlr::ast_t ast = parser.parse();
 			parser.dumpNode(ast.tree);
 
 		}
-		catch (antlr::ParseError& e) {
+		catch (ParseError& e) {
 			std::cout << e.getMessage();
 			if (e.getLine() > 0) {
 				std::cout << " on line " << e.getLine();
