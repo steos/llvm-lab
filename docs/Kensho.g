@@ -387,15 +387,10 @@ fragment
 EXPONENT
 	:	( 'e' | 'E' ) ( '+' | '-' )? DIGIT+
 	;
-
-fragment
-UNICODE_SEQ
-	:	'u' HEXDIGIT HEXDIGIT HEXDIGIT HEXDIGIT
-	;
 	
 fragment
 ESCSEQ
-	:	'\\' ( 't' | 'n' | 'r' | '\\' | UNICODE_SEQ )
+	:	'\\' ( 't' | 'n' | 'r' | '\\' | '\'' )
 	;
 	
 WS	
@@ -434,5 +429,5 @@ ID
 	;
 	
 LITERAL_CHAR
-	:	'\'' ( ESCSEQ | ~('\'' | '\r' | '\n' )) '\''
+	:	'\'' ( ESCSEQ | ~('\'' | '\r' | '\n' | '\t' | '\\' )) '\''
 	;
