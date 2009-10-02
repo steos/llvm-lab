@@ -17,6 +17,7 @@
 #define AST_HPP_
 
 #include <cassert>
+#include <map>
 #include <llvm/Value.h>
 #include <llvm/Type.h>
 #include <llvm/Module.h>
@@ -115,7 +116,7 @@ namespace ast {
 	 */
 	class Callable : public Symbol {
 	protected:
-		std::vector<uint32_t> parameterTypes;
+		std::vector<const llvm::Type*> parameterTypes;
 		virtual void assemble(ModuleBuilder& mb);
 	public:
 		Callable(std::string name, uint32_t type) :
@@ -125,7 +126,7 @@ namespace ast {
 	};
 
 	inline void Callable::addParameter(uint32_t type) {
-		parameterTypes.push_back(type);
+		parameterTypes.push_back(toAssemblyType(type));
 	}
 
 	/*
@@ -219,7 +220,7 @@ namespace ast {
 
 	inline void Function::addParameter(std::string name, uint32_t type) {
 		parameterNames.push_back(name);
-		parameterTypes.push_back(type);
+		parameterTypes.push_back(toAssemblyType(type));
 	}
 
 	inline void Function::addBodyNode(Node* node) {
@@ -251,12 +252,15 @@ namespace ast {
 	class Cast : public Node {
 	private:
 		int32_t type;
+		const llvm::Type* assemblyType;
 		Node* expression;
 	protected:
 		virtual void assemble(ModuleBuilder& mb);
 	public:
 		Cast(int32_t type, Node* expression) :
-			type(type), expression(expression) {};
+			type(type), expression(expression) {
+			assemblyType = toAssemblyType(type);
+		};
 	};
 
 	/*
@@ -299,6 +303,18 @@ namespace ast {
 		}
 	};
 
+	class Return : public Node {
+	private:
+		Node* expression;
+	protected:
+		virtual void assemble(ModuleBuilder& mb);
+	public:
+		Return(Node* expression) : expression(expression) {};
+		Node* getExpression() {
+			return expression;
+		}
+	};
+
 	/*
 	 * The ModuleBuilder class
 	 * manages the compilation of a module (i.e. is in charge
@@ -309,17 +325,33 @@ namespace ast {
 		llvm::Module module;
 		llvm::IRBuilder<> irBuilder;
 		std::vector<Callable*>* functions;
+		std::map<std::string, Symbol*> symbols;
 	public:
 		ModuleBuilder(std::string name, std::vector<ast::Callable*>* functions) :
 			module(name), functions(functions) {};
 		llvm::IRBuilder<>& getIRBuilder();
-		llvm::Module& getModule();
+		llvm::Module* getModule();
+		void declareSymbol(Symbol* symbol);
+		bool isDeclared(std::string name);
+		Symbol* getSymbol(std::string name);
 		void build();
 		~ModuleBuilder() {};
 	};
 
-	inline llvm::Module& ModuleBuilder::getModule() {
-		return module;
+	inline Symbol* ModuleBuilder::getSymbol(std::string name) {
+		return symbols[name];
+	}
+
+	inline bool ModuleBuilder::isDeclared(std::string name) {
+		return symbols.count(name) > 0;
+	}
+
+	inline void ModuleBuilder::declareSymbol(Symbol* symbol) {
+		symbols[symbol->getName()] = symbol;
+	}
+
+	inline llvm::Module* ModuleBuilder::getModule() {
+		return &module;
 	}
 
 	inline llvm::IRBuilder<>& ModuleBuilder::getIRBuilder() {

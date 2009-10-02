@@ -92,7 +92,21 @@ statement returns [kensho::ast::Node* node]
 	|	expression { $node = $expression.node; }
 	|	ifStat { $node = $ifStat.node; }
 	|	whileStat { $node = $whileStat.node; }
+	|	returnStatement { $node = $returnStatement.node; }
 	;
+	
+returnStatement returns [kensho::ast::Return* node]
+@after {
+	if ($node == NULL) {
+		$node = new kensho::ast::Return(NULL);
+	}
+}
+	:	^(K_RETURN 
+			( ex=expression { 
+				$node = new kensho::ast::Return($ex.node); 
+			})?
+		)
+	;	
 	
 ifStat returns [kensho::ast::Conditional* node]
 	:	^(K_IF 

@@ -34,6 +34,24 @@ namespace kensho {
 
 		virtual ~Error() {};
 	};
+
+	/*
+	 * exception class for parse errors
+	 */
+	class ParseError : public Error {
+	protected:
+		const int32_t line;
+	public:
+		ParseError(const std::string& message) :
+			Error(message), line(0) {};
+
+		ParseError(const std::string& message, int32_t line) :
+			Error(message), line(line) {};
+
+		int32_t getLine() const {
+			return line;
+		}
+	};
 }
 
 #endif /* ERROR_HPP_ */

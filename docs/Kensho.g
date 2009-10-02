@@ -72,6 +72,7 @@ tokens
 	LITERAL_TRUE	= 'true';
 	LITERAL_FALSE	= 'false';
 	K_NATIVE		= 'native';
+	K_RETURN		= 'return';
 	
 	// misc
 	BRACE_L			= '{';
@@ -239,6 +240,12 @@ statement
 	|	expression SEMICOLON!
 	|	ifStat
 	|	whileStat
+	|	returnStatement SEMICOLON!
+	;
+	
+returnStatement
+	:	K_RETURN expression?
+		->	^(K_RETURN expression?)
 	;
 	
 block

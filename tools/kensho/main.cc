@@ -113,7 +113,7 @@
 			mb.build();
 
 			if (op.mode == MODE_DUMP_IR) {
-				mb.getModule().dump();
+				mb.getModule()->dump();
 				return EXIT_OK;
 			}
 

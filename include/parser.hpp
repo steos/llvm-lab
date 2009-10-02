@@ -25,24 +25,6 @@
 namespace kensho {
 
 	/*
-	 * exception class for antlr errors
-	 */
-	class ParseError : public kensho::Error {
-	protected:
-		const int32_t line;
-	public:
-		ParseError(const std::string& message) :
-			kensho::Error(message), line(0) {};
-
-		ParseError(const std::string& message, int32_t line) :
-			kensho::Error(message), line(line) {};
-
-		int32_t getLine() const {
-			return line;
-		}
-	};
-
-	/*
 	 * facade for antlr c functions
 	 */
 	class Parser {
