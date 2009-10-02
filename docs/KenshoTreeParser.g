@@ -25,49 +25,118 @@ options
 
 @preincludes {
 	#include <ast.hpp>
+	#include <vector>
 }
 
-program
-	:	( function | kenniFunction )*
+program returns [std::vector<kensho::ast::Callable*>* functions]
+@init {
+	$functions = new std::vector<kensho::ast::Callable*>();
+}
+	:	( 	function {
+			$functions->push_back($function.node);
+		} 
+		| 	kenniFunction { 
+				$functions->push_back($kenniFunction.node); 
+			} 
+		)*
 	;
 	
-kenniFunction
-	:	^(KENNIDEF functionType ID type*) 
+kenniFunction returns [kensho::ast::Callable* node]
+	:	^(KENNIDEF 
+			t=functionType 
+			n=ID {
+				std::string name((char*)$n->getText($n)->chars);
+				$node = new kensho::ast::Callable(name, $t.tree->getType($t.tree));
+			}
+			( type {
+				$node->addParameter($type.tree->getType($type.tree));
+			})*
+		) 
 	;
 	
-function
-	:	^(FUNDEF signature statement*)
+function returns [kensho::ast::Function* node]
+	:	^(FUNDEF 
+			signature { 
+				$node = $signature.node;
+			} 
+			( statement {
+				$node->addBodyNode($statement.node);
+			})*
+		)
 	;	
 	
-signature
-	:	^(FUNSIG functionType ID params*) 
+signature returns [kensho::ast::Function* node]
+	:	^(FUNSIG 
+			t=functionType 
+			n=ID {
+				std::string name((char*)$n->getText($n)->chars);
+				$node = new kensho::ast::Function(name, $t.tree->getType($t.tree));
+			} 
+			params[$node]*
+		) 
 	;
 	
 functionType
 	:	T_VOID | type
 	;	
 		
-params
-	:	^(ARGDEF type ID)
+params[kensho::ast::Function* node]
+	:	^(ARGDEF type n=ID) {
+			std::string name((char*)$n->getText($n)->chars);
+			$node->addParameter(name, $type.tree->getType($type.tree));
+		}
 	;
 
-statement
-	:	variable
-	|	expression
-	|	ifStat
-	|	whileStat
+statement returns [kensho::ast::Node* node]
+	:	variable { $node = $variable.node; }
+	|	expression { $node = $expression.node; }
+	|	ifStat { $node = $ifStat.node; }
+	|	whileStat { $node = $whileStat.node; }
 	;
 	
-ifStat
-	:	^(K_IF expression statement* elseStat? )
+ifStat returns [kensho::ast::Conditional* node]
+	:	^(K_IF 
+			ex=expression {
+				$node = new kensho::ast::Conditional($ex.node);
+			}
+			( statement {
+				$node->addTrueBodyNode($statement.node);
+			})* 
+			( elseIfStat {
+				$node->addBranch($elseIfStat.node);
+			})* 
+			( elseStat[$node] )? 
+		)
 	;
 	
-elseStat
-	:	^(K_ELSE statement*)
+elseIfStat returns [kensho::ast::Conditional* node]
+	:	^(ELSEIF 
+			ex=expression {
+				$node = new kensho::ast::Conditional($ex.node);
+			}
+			( statement {
+				$node->addTrueBodyNode($statement.node);
+			})*
+		)
+	;
+	
+elseStat[kensho::ast::Conditional* node]
+	:	^(K_ELSE 
+			( statement {
+				$node->addFalseBodyNode($statement.node);
+			})*
+		)
 	;
 
-whileStat
-	:	^(K_WHILE expression statement*)
+whileStat returns [kensho::ast::While* node]
+	:	^(K_WHILE 
+			ex=expression {
+				$node = new kensho::ast::While($ex.node);
+			} 
+			( s=statement {
+				$node->addBodyNode($s.node);
+			})*
+		)
 	;	
 	
 variable returns [kensho::ast::VariableDefinition* node]

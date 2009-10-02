@@ -19,15 +19,13 @@
 #include <cassert>
 #include <llvm/Value.h>
 #include <llvm/Type.h>
+#include <llvm/Module.h>
+#include <llvm/Support/IRBuilder.h>
 
 namespace kensho {
 namespace ast {
 
-	/*
-	 * forward declaration of the ModuleBuilder class which
-	 * manages the compilation of a module (i.e. is in charge
-	 * of the symbol table etc.)
-	 */
+	// forward declare modulebuilder
 	class ModuleBuilder;
 
 	const llvm::Type* toAssemblyType(uint32_t type);
@@ -109,7 +107,7 @@ namespace ast {
 	}
 
 	/*
-	 * Abstract base class for nodes that result in a callable
+	 * Base class for nodes that result in a callable
 	 * function, i.e. captures the name, return type and parameter types
 	 * and is implemented by the function node as well as native function nodes
 	 * and possibly future variations of a callable object like closures.
@@ -118,7 +116,7 @@ namespace ast {
 	class Callable : public Symbol {
 	protected:
 		std::vector<uint32_t> parameterTypes;
-		virtual void assemble(ModuleBuilder& mb) = 0;
+		virtual void assemble(ModuleBuilder& mb);
 	public:
 		Callable(std::string name, uint32_t type) :
 			Symbol(name, type) {};
@@ -228,6 +226,9 @@ namespace ast {
 		body.push_back(node);
 	}
 
+	/**
+	 * function call
+	 */
 	class Call : public Node {
 	private:
 		std::string name;
@@ -244,6 +245,9 @@ namespace ast {
 		}
 	};
 
+	/*
+	 * type cast expression
+	 */
 	class Cast : public Node {
 	private:
 		int32_t type;
@@ -254,6 +258,73 @@ namespace ast {
 		Cast(int32_t type, Node* expression) :
 			type(type), expression(expression) {};
 	};
+
+	/*
+	 * while statement
+	 */
+	class While : public Node {
+	private:
+		Node* expression;
+		std::vector<Node*> body;
+	protected:
+		virtual void assemble(ModuleBuilder& mb);
+	public:
+		While(Node* expression) : expression(expression) {};
+		void addBodyNode(Node* node) {
+			body.push_back(node);
+		}
+	};
+
+	/*
+	 * conditional statement, i.e. if-else
+	 */
+	class Conditional : public Node {
+	private:
+		Node* expression;
+		std::vector<Node*> trueBody;
+		std::vector<Node*> falseBody;
+		std::vector<Conditional*> branches;
+	protected:
+		virtual void assemble(ModuleBuilder& mb);
+	public:
+		Conditional(Node* expression) : expression(expression) {};
+		void addTrueBodyNode(Node* node) {
+			trueBody.push_back(node);
+		}
+		void addFalseBodyNode(Node* node) {
+			falseBody.push_back(node);
+		}
+		void addBranch(Conditional* c) {
+			branches.push_back(c);
+		}
+	};
+
+	/*
+	 * The ModuleBuilder class
+	 * manages the compilation of a module (i.e. is in charge
+	 * of the symbol table etc.)
+	 */
+	class ModuleBuilder {
+	private:
+		llvm::Module module;
+		llvm::IRBuilder<> irBuilder;
+		std::vector<Callable*>* functions;
+	public:
+		ModuleBuilder(std::string name, std::vector<ast::Callable*>* functions) :
+			module(name), functions(functions) {};
+		llvm::IRBuilder<>& getIRBuilder();
+		llvm::Module& getModule();
+		void build();
+		~ModuleBuilder() {};
+	};
+
+	inline llvm::Module& ModuleBuilder::getModule() {
+		return module;
+	}
+
+	inline llvm::IRBuilder<>& ModuleBuilder::getIRBuilder() {
+		return irBuilder;
+	}
 }}
 
 

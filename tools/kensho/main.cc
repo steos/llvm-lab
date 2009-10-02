@@ -57,7 +57,7 @@
 
 	Options parse_args(int argc, char** argv) {
 		Options op;
-		op.mode = MODE_RUN;
+		op.mode = MODE_DUMP_IR;
 		op.optimize = false;
 		op.mem2reg = false;
 
@@ -109,7 +109,15 @@
 
 			parser.createTreeParser();
 			antlr::treeast_t treeAst = parser.parseTree();
-			// TODO
+			ast::ModuleBuilder mb("default", treeAst.functions);
+			mb.build();
+
+			if (op.mode == MODE_DUMP_IR) {
+				mb.getModule().dump();
+				return EXIT_OK;
+			}
+
+			// TODO JIT it or emit bitcode or assembly
 		}
 		catch (ParseError& e) {
 			std::cerr << e.getMessage();

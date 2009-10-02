@@ -92,6 +92,7 @@ tokens
 	CALL;
 	CAST;
 	KENNIDEF;
+	ELSEIF;
 }
 
 @parser::preincludes {
@@ -250,7 +251,7 @@ ifStat
 		elseStat?
 		
 	->	^(K_IF expression block 
-			^(K_IF elseIfStat)* 
+			^(ELSEIF elseIfStat)* 
 			^(K_ELSE elseStat)? )
 	;
 	

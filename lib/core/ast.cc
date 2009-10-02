@@ -14,8 +14,8 @@
  */
 
 #include <ast.hpp>
-#include <ModuleBuilder.hpp>
 #include <llvm/Type.h>
+#include <iostream>
 #include <KenshoLexer.h>
 
 using namespace kensho;
@@ -75,6 +75,39 @@ using namespace kensho;
 	 */
 	void ast::Cast::assemble(ast::ModuleBuilder& mb) {
 		// TODO
+	}
+
+	/*
+	 * implementation of While
+	 */
+	void ast::While::assemble(ast::ModuleBuilder& mb) {
+		// TODO
+	}
+
+	/*
+	 * implementation of Conditional
+	 */
+	void ast::Conditional::assemble(ast::ModuleBuilder& mb) {
+		// TODO
+	}
+
+	/*
+	 * implementation of Callable
+	 */
+	void ast::Callable::assemble(ast::ModuleBuilder& mb) {
+		// TODO
+	}
+
+	/*
+	 * implementation of ModuleBuilder
+	 */
+	void ast::ModuleBuilder::build() {
+		int numFuns = functions->size();
+		for (int i = 0; i < numFuns; ++i) {
+			Callable* cb = functions->at(i);
+			std::cout << "function \"" << cb->getName() << "\"\n";
+			// TODO cb->emit(*this);
+		}
 	}
 
 	const llvm::Type* ast::toAssemblyType(uint32_t type)
