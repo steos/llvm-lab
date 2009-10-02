@@ -17,11 +17,8 @@
 #define AST_HPP_
 
 #include <cassert>
-#include <map>
 #include <llvm/Value.h>
 #include <llvm/Type.h>
-#include <llvm/Module.h>
-#include <llvm/Support/IRBuilder.h>
 
 namespace kensho {
 namespace ast {
@@ -239,6 +236,7 @@ namespace ast {
 	private:
 		std::vector<std::string> parameterNames;
 		std::vector<Node*> body;
+		std::vector<llvm::Value*> parameterValues;
 	protected:
 		virtual void assemble(ModuleBuilder& mb);
 	public:
@@ -246,7 +244,14 @@ namespace ast {
 			Callable(name, type) {};
 		virtual void addParameter(std::string name, uint32_t type);
 		void addBodyNode(Node*);
+		llvm::Value* getParameterValue(uint32_t offset);
+		const llvm::Type* getParameterType(uint32_t offset);
 	};
+
+	inline const llvm::Type* Function::getParameterType(uint32_t offset) {
+		assert(offset < parameterTypes.size());
+		return parameterTypes.at(offset);
+	}
 
 	inline void Function::addParameter(std::string name, uint32_t type) {
 		parameterNames.push_back(name);
@@ -257,6 +262,24 @@ namespace ast {
 	inline void Function::addBodyNode(Node* node) {
 		body.push_back(node);
 	}
+
+	inline llvm::Value* Function::getParameterValue(uint32_t offset) {
+		assert(offset < parameterValues.size());
+		return parameterValues.at(offset);
+	}
+
+	class ParameterDefinition : public Node {
+	private:
+		std::string name;
+		Function* fun;
+		uint32_t index;
+		uint32_t type;
+	protected:
+		virtual void assemble(ModuleBuilder& mb);
+	public:
+		ParameterDefinition(std::string name, Function* fun, uint32_t index, uint32_t type) :
+			name(name), fun(fun), index(index), type(type) {};
+	};
 
 	/**
 	 * function call
@@ -352,51 +375,7 @@ namespace ast {
 		return true;
 	}
 
-	/*
-	 * The ModuleBuilder class
-	 * manages the compilation of a module (i.e. is in charge
-	 * of the symbol table etc.)
-	 */
-	class ModuleBuilder {
-	private:
-		llvm::Module module;
-		llvm::IRBuilder<> irBuilder;
-		std::vector<Callable*>* functions;
-		std::map<std::string, Symbol*> symbols;
-	public:
-		ModuleBuilder(std::string name, std::vector<ast::Callable*>* functions) :
-			module(name), functions(functions) {};
-		llvm::IRBuilder<>& getIRBuilder();
-		llvm::Module* getModule();
-		void declareSymbol(Symbol* symbol);
-		bool isDeclared(std::string name);
-		Symbol* getSymbol(std::string name);
-		void build();
-		llvm::Value* createBinaryOperator(
-			uint32_t type, llvm::Value* left, llvm::Value* right);
 
-		~ModuleBuilder() {};
-	};
-
-	inline Symbol* ModuleBuilder::getSymbol(std::string name) {
-		return symbols[name];
-	}
-
-	inline bool ModuleBuilder::isDeclared(std::string name) {
-		return symbols.count(name) > 0;
-	}
-
-	inline void ModuleBuilder::declareSymbol(Symbol* symbol) {
-		symbols[symbol->getName()] = symbol;
-	}
-
-	inline llvm::Module* ModuleBuilder::getModule() {
-		return &module;
-	}
-
-	inline llvm::IRBuilder<>& ModuleBuilder::getIRBuilder() {
-		return irBuilder;
-	}
 }}
 
 

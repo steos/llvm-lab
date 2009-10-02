@@ -17,6 +17,8 @@
 #include <vector>
 #include <string>
 
+#include <ModuleBuilder.hpp>
+
 // always include antlr last!
 #include <parser.hpp>
 
@@ -59,7 +61,7 @@
 		Options op;
 		op.mode = MODE_DUMP_IR;
 		op.optimize = false;
-		op.mem2reg = false;
+		op.mem2reg = true;
 
 		for (int i = 1; i < argc; i++) {
 			if (std::strcmp(argv[i], "-ast") == 0) {
@@ -110,7 +112,7 @@
 			parser.createTreeParser();
 			antlr::treeast_t treeAst = parser.parseTree();
 			ast::ModuleBuilder mb("default", treeAst.functions);
-			mb.build();
+			mb.build(op.mem2reg, op.optimize);
 
 			if (op.mode == MODE_DUMP_IR) {
 				mb.getModule()->dump();

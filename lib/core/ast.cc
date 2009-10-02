@@ -14,6 +14,7 @@
  */
 
 #include <ast.hpp>
+#include <ModuleBuilder.hpp>
 #include <error.hpp>
 #include <llvm/Type.h>
 #include <llvm/Function.h>
@@ -34,6 +35,13 @@ using namespace kensho;
 		}
 		value = mb.getIRBuilder().CreateAlloca(assemblyType, 0, name.c_str());
 		mb.declareSymbol(this);
+	}
+
+	void ast::ParameterDefinition::assemble(ast::ModuleBuilder& mb) {
+		assert (mb.isDeclared(name) == false && "parameter already declared");
+		VariableDefinition* vardef = new VariableDefinition(name, type);
+		llvm::Value* ptr = vardef->emit(mb);
+		value = mb.getIRBuilder().CreateStore(fun->getParameterValue(index), ptr);
 	}
 
 	/*
@@ -210,19 +218,22 @@ using namespace kensho;
 	void ast::Function::assemble(ast::ModuleBuilder& mb) {
 		llvm::Function* fun = llvm::cast<llvm::Function>(value);
 		assert(fun != NULL);
+
 		// set parameter names
 		llvm::Function::arg_iterator arg = NULL;
 		int32_t i = 0;
 		for (arg = fun->arg_begin(); arg != fun->arg_end(); ++arg) {
-			arg->setName(parameterNames.at(i++).c_str());
+			std::string str = parameterNames.at(i++);
+			arg->setName(str.c_str());
+			parameterValues.push_back(arg);
 		}
 
 		// emit body
 		llvm::BasicBlock* entryBlock = llvm::BasicBlock::Create("entry", fun);
 		mb.getIRBuilder().SetInsertPoint(entryBlock);
 
-		int32_t numStats = body.size();
-		for (int32_t i = 0; i < numStats; ++i) {
+		uint32_t numStats = body.size();
+		for (uint32_t i = 0; i < numStats; ++i) {
 			body.at(i)->emit(mb);
 			if (body.at(i)->isReturnStatement() && i < body.size() - 1) {
 				throw(ParseError("unreachable code after return statement"));
@@ -477,67 +488,6 @@ using namespace kensho;
 			return;
 		}
 		value = mb.getIRBuilder().CreateRet(expression->emit(mb));
-	}
-
-	/*
-	 * implementation of ModuleBuilder
-	 */
-	void ast::ModuleBuilder::build() {
-		int numFuns = functions->size();
-		for (int i = 0; i < numFuns; ++i) {
-			Callable* cb = functions->at(i);
-			cb->emitDefinition(*this);
-		}
-		for (int i = 0; i < numFuns; ++i) {
-			Callable* cb = functions->at(i);
-			cb->emit(*this);
-		}
-	}
-
-	llvm::Value* ast::ModuleBuilder::createBinaryOperator(
-		uint32_t type, llvm::Value* left, llvm::Value* right)
-	{
-		switch (type) {
-			case OP_ADD:
-				return irBuilder.CreateAdd(left, right, "add");
-			case OP_SUB:
-				return irBuilder.CreateSub(left, right, "sub");
-			case OP_MUL:
-				return irBuilder.CreateMul(left, right, "mul");
-			case OP_DIV:
-				return irBuilder.CreateSDiv(left, right, "div");
-			case OP_AND:
-			case OP_BIT_AND:
-				return irBuilder.CreateAnd(left, right, "and");
-			case OP_OR:
-			case OP_BIT_OR:
-				return irBuilder.CreateOr(left, right, "or");
-			case OP_XOR:
-				return irBuilder.CreateXor(left, right, "xor");
-
-			case CMP_EQ:
-				return irBuilder.CreateICmpEQ(left, right, "eq");
-			case CMP_NEQ:
-				return irBuilder.CreateICmpNE(left, right, "neq");
-			case CMP_LT:
-				return irBuilder.CreateICmpSLT(left, right, "lt");
-			case CMP_LTE:
-				return irBuilder.CreateICmpSLE(left, right, "lte");
-			case CMP_GT:
-				return irBuilder.CreateICmpSGT(left, right, "gt");
-			case CMP_GTE:
-				return irBuilder.CreateICmpSGE(left, right, "gte");
-
-			case OP_SHIFT_L:
-				return irBuilder.CreateShl(left, right, "shl");
-			case OP_SHIFT_R:
-				return irBuilder.CreateLShr(left, right, "lshr");
-			case OP_USHIFT_R:
-				return irBuilder.CreateAShr(left, right, "ashr");
-
-			default:
-				assert(false && "operator not handled");
-		}
 	}
 
 	const llvm::Type* ast::toAssemblyType(uint32_t type)
