@@ -264,7 +264,6 @@ using namespace kensho;
 		}
 		else {
 			Return* ret = dynamic_cast<Return*>(body.at(numStats - 1));
-			ret->emit(mb);
 			// verify type match
 			Node* ex = ret->getExpression();
 			if (ex != NULL && type == T_VOID) {
