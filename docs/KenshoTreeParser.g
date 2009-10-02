@@ -84,6 +84,11 @@ params[kensho::ast::Function* node]
 	:	^(ARGDEF type n=ID) {
 			std::string name((char*)$n->getText($n)->chars);
 			$node->addParameter(name, $type.tree->getType($type.tree));
+			// add variable definition for the parameter
+			$node->addBodyNode(new kensho::ast::VariableDefinition(
+				name,
+				$type.tree->getType($type.tree)
+			));
 		}
 	;
 

@@ -88,6 +88,7 @@ namespace ast {
 		Symbol(std::string name, uint32_t type) :
 			name(name), type(type) {
 			assemblyType = toAssemblyType(type);
+			assert(assemblyType != NULL);
 		};
 		std::string getName();
 		uint32_t getType();
@@ -121,12 +122,25 @@ namespace ast {
 	public:
 		Callable(std::string name, uint32_t type) :
 			Symbol(name, type) {};
+		virtual void emitDefinition(ModuleBuilder& mb);
 		virtual void addParameter(uint32_t type);
+		std::vector<const::llvm::Type*> getParameterTypes();
+		int countParameters();
 		virtual ~Callable() {};
 	};
 
 	inline void Callable::addParameter(uint32_t type) {
-		parameterTypes.push_back(toAssemblyType(type));
+		const llvm::Type* asmt = toAssemblyType(type);
+		assert(asmt != NULL);
+		parameterTypes.push_back(asmt);
+	}
+
+	inline std::vector<const::llvm::Type*> Callable::getParameterTypes() {
+		return parameterTypes;
+	}
+
+	inline int Callable::countParameters() {
+		return parameterTypes.size();
 	}
 
 	/*
@@ -150,7 +164,12 @@ namespace ast {
 		virtual void assemble(ModuleBuilder&);
 	public:
 		Variable(std::string name) : name(name) {};
+		std::string getName();
 	};
+
+	inline std::string Variable::getName() {
+		return name;
+	}
 
 	/*
 	 * a unary expression
@@ -200,6 +219,12 @@ namespace ast {
 		virtual void assemble(ModuleBuilder& mb);
 	public:
 		Literal(uint32_t tokenType, std::string text) : tokenType(tokenType), text(text) {};
+		uint32_t getTokenType() {
+			return tokenType;
+		}
+		std::string getText() {
+			return text;
+		}
 	};
 
 	/*
@@ -220,7 +245,8 @@ namespace ast {
 
 	inline void Function::addParameter(std::string name, uint32_t type) {
 		parameterNames.push_back(name);
-		parameterTypes.push_back(toAssemblyType(type));
+		const llvm::Type* asmt = toAssemblyType(type);
+		parameterTypes.push_back(asmt);
 	}
 
 	inline void Function::addBodyNode(Node* node) {
@@ -260,6 +286,7 @@ namespace ast {
 		Cast(int32_t type, Node* expression) :
 			type(type), expression(expression) {
 			assemblyType = toAssemblyType(type);
+			assert(assemblyType != NULL);
 		};
 	};
 
@@ -335,6 +362,9 @@ namespace ast {
 		bool isDeclared(std::string name);
 		Symbol* getSymbol(std::string name);
 		void build();
+		llvm::Value* createBinaryOperator(
+			uint32_t type, llvm::Value* left, llvm::Value* right);
+
 		~ModuleBuilder() {};
 	};
 

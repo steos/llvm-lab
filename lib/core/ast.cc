@@ -22,53 +22,210 @@
 
 using namespace kensho;
 
-
 	/*
 	 * implementation of VariableDefinition
 	 */
 	void ast::VariableDefinition::assemble(ast::ModuleBuilder& mb) {
-		// TODO
-		assert(false && "VariableDefinition::assemble not yet implemented");
+		if (mb.isDeclared(name)) {
+			std::string err = "symbol ";
+			err += name;
+			err += " is already declared";
+			throw(ParseError(err));
+		}
+		value = mb.getIRBuilder().CreateAlloca(assemblyType, 0, name.c_str());
+		mb.declareSymbol(this);
 	}
 
 	/*
 	 * implementation of Variable
 	 */
 	void ast::Variable::assemble(ast::ModuleBuilder& mb) {
-		// TODO
-		assert(false && "Variable::assemble not yet implemented");
+		if (!mb.isDeclared(name)) {
+			std::string err = "variable ";
+			err += name;
+			err += " is not declared";
+			throw(ParseError(err));
+		}
+
+		Symbol* sym = mb.getSymbol(name);
+		// currently we only allow variables
+		VariableDefinition* var = dynamic_cast<VariableDefinition*>(sym);
+		if (var == NULL) {
+			std::string err = "symbol ";
+			err += name;
+			err += " is not a variable";
+		}
+
+		value = mb.getIRBuilder().CreateLoad(var->getValue(), name.c_str());
 	}
 
 	/*
 	 * implementation of Literal
 	 */
 	void ast::Literal::assemble(ast::ModuleBuilder& mb) {
-		// TODO
-		assert(false && "Literal::assemble not yet implemented");
+		switch (tokenType) {
+			case LITERAL_TRUE:
+				value = llvm::ConstantInt::get(llvm::Type::Int1Ty, 1);
+				break;
+			case LITERAL_FALSE:
+				value = llvm::ConstantInt::get(llvm::Type::Int1Ty, 0);
+				break;
+			case LITERAL_INT: {
+				char last = text[text.length() - 1];
+				const llvm::Type* type = (last == 'l' || last == 'L') ?
+						llvm::Type::Int64Ty : llvm::Type::Int32Ty;
+				value = llvm::ConstantInt::get(
+					type,
+					type == llvm::Type::Int64Ty ?
+						std::atol(text.c_str()) : std::atoi(text.c_str()),
+					true
+				);
+				break;
+			}
+			case LITERAL_FLOAT: {
+				char last = text[text.length() - 1];
+				const llvm::Type* type = (last == 'd' || last == 'D') ?
+					llvm::Type::DoubleTy : llvm::Type::FloatTy;
+				value = llvm::ConstantFP::get(type, std::atof(text.c_str()));
+				break;
+			}
+			case LITERAL_HEX:
+			case LITERAL_OCT: {
+				long int val = std::strtol(
+					text.c_str(),
+					NULL,
+					tokenType == LITERAL_HEX ? 16 : 8
+				);
+				value = llvm::ConstantInt::get(llvm::Type::Int32Ty, val, true);
+				break;
+			}
+			case LITERAL_CHAR: {
+				char c;
+				if (text[1] == '\\') {
+					if (text[2] == 'n') {
+						c = '\n';
+					}
+					else if (text[2] == 'r') {
+						c = '\r';
+					}
+					else if (text[2] == 't') {
+						c = '\t';
+					}
+				}
+				else {
+					c = text[1];
+				}
+				value = llvm::ConstantInt::get(llvm::Type::Int32Ty, c, true);
+				break;
+			}
+			default:
+				assert(false && "missing literal type in switch");
+		}
 	}
 
 	/*
 	 * implementation of BinaryExpression
 	 */
 	void ast::BinaryExpression::assemble(ast::ModuleBuilder& mb) {
-		// TODO
-		assert(false && "BinaryExpression::assemble not yet implemented");
+		const llvm::Type* typeLeft = NULL;
+		const llvm::Type* typeRight = NULL;
+
+		// emit right side
+		llvm::Value* valRight = right->emit(mb);
+		typeRight = valRight->getType();
+
+		// special handling for assignment
+		if (token == OP_ASSIGN) {
+			Variable* var = dynamic_cast<Variable*>(left);
+			if (var == NULL) {
+				throw(ParseError("can only assign to variables"));
+			}
+			if (!mb.isDeclared(var->getName())) {
+				std::string err = "variable ";
+				err += var->getName();
+				err += " is not declared";
+				throw(ParseError(err));
+			}
+			VariableDefinition* vardef = dynamic_cast<VariableDefinition*>(
+				mb.getSymbol(var->getName()));
+			assert(vardef != NULL);
+			if (vardef->getAssemblyType() != typeRight) {
+				std::string err = "type mismatch in variable assignment to ";
+				err += var->getName();
+				throw(ParseError(err));
+			}
+			value = mb.getIRBuilder().CreateStore(valRight, vardef->getValue());
+			// we're done for variable assignments
+			return;
+		}
+
+		llvm::Value* valLeft = left->emit(mb);
+		typeLeft = valLeft->getType();
+
+		if (typeLeft != typeRight) {
+			// TODO
+			throw(ParseError("type mismatch in expression"));
+		}
+
+		value = mb.createBinaryOperator(token, valLeft, valRight);
 	}
 
 	/*
 	 * implementation of UnaryExpression
 	 */
 	void ast::UnaryExpression::assemble(ast::ModuleBuilder& mb) {
-		// TODO
-		assert(false && "UnaryExpression::assemble not yet implemented");
+		Literal* lit = dynamic_cast<Literal*>(expression);
+		// if the expression is a literal float or integer
+		// and the unary operator is a + or - it's not an operator
+		// but simply a sign so we must treat it as a literal
+		if (lit != NULL && (lit->getTokenType() == LITERAL_INT
+			|| lit->getTokenType() == LITERAL_FLOAT)
+			&& (token == OP_ADD || token == OP_SUB)) {
+			if (token == OP_SUB) {
+				std::string text = lit->getText();
+				text.insert(text.begin(), '-');
+			}
+			// ignore OP_ADD
+			value = lit->emit(mb);
+		}
+		else {
+			llvm::Value* val = expression->emit(mb);
+			if (token == OP_NOT || token == OP_BIT_NOT) {
+				// xor with all bits set
+				if (val->getType()->isInteger()) {
+					throw(ParseError("cannot negate non-integer type"));
+				}
+				value = mb.getIRBuilder().CreateXor(
+					val,
+					llvm::ConstantInt::get(val->getType(), UINT64_MAX, false)
+				);
+			}
+			else if (token == OP_SUB) {
+				// sub from 0 depending on type
+				if (val->getType()->isInteger()) {
+					value = mb.getIRBuilder().CreateSub(
+						llvm::ConstantInt::get(val->getType(), 0, true),
+						val
+					);
+				}
+				else if (val->getType()->isFloatingPoint()) {
+					value = mb.getIRBuilder().CreateSub(
+						llvm::ConstantFP::get(val->getType(), 0),
+						val
+					);
+				}
+			}
+			else {
+				// we can ignore OP_ADD
+				value = val;
+			}
+		}
 	}
 
 	/*
 	 * implementation of Function
 	 */
 	void ast::Function::assemble(ast::ModuleBuilder& mb) {
-		// emit prototype
-		Callable::assemble(mb);
 		llvm::Function* fun = llvm::cast<llvm::Function>(value);
 		assert(fun != NULL);
 		// set parameter names
@@ -77,6 +234,7 @@ using namespace kensho;
 		for (arg = fun->arg_begin(); arg != fun->arg_end(); ++arg) {
 			arg->setName(parameterNames.at(i++).c_str());
 		}
+
 		// emit body
 		llvm::BasicBlock* entryBlock = llvm::BasicBlock::Create("entry", fun);
 		mb.getIRBuilder().SetInsertPoint(entryBlock);
@@ -125,8 +283,46 @@ using namespace kensho;
 	 * implementation of Call
 	 */
 	void ast::Call::assemble(ast::ModuleBuilder& mb) {
-		// TODO
-		assert(false && "Call::assemble not yet implemented");
+		if (!mb.isDeclared(name)) {
+			std::string err = "function ";
+			err += name;
+			err += " is not declared";
+			throw(ParseError(err));
+		}
+
+		Callable* fun = dynamic_cast<Callable*>(mb.getSymbol(name));
+		if (fun == NULL) {
+			std::string err = "symbol ";
+			err += name;
+			err += " is not a function and cannot be called";
+			throw(ParseError(err));
+		}
+
+		uint32_t numParams = fun->countParameters();
+		if (numParams != arguments.size()) {
+			std::string err = "argument count mismatch in call to function ";
+			err += name;
+			throw(ParseError(err));
+		}
+
+		std::vector<const llvm::Type*> expected = fun->getParameterTypes();
+		std::vector<llvm::Value*> values;
+
+		for (uint32_t i = 0; i < numParams; ++i) {
+			Node* arg = arguments.at(i);
+			llvm::Value* val = arg->emit(mb);
+			if (expected.at(i) != val->getType()) {
+				std::string err = "type mismatch in call to function ";
+				err += name;
+				err += " for argument #";
+				err += i;
+				throw(ParseError(err));
+			}
+			values.push_back(val);
+		}
+
+		value = mb.getIRBuilder().CreateCall(
+			fun->getValue(), values.begin(), values.end());
 	}
 
 	/*
@@ -149,28 +345,147 @@ using namespace kensho;
 	 * implementation of Conditional
 	 */
 	void ast::Conditional::assemble(ast::ModuleBuilder& mb) {
-		// TODO
-		assert(false && "Conditional::assemble not yet implemented");
+		llvm::Function* fun = mb.getIRBuilder().GetInsertBlock()->getParent();
+		llvm::BasicBlock* trueBlock = llvm::BasicBlock::Create("if-true", fun);
+		llvm::BasicBlock* merge = llvm::BasicBlock::Create("if-merge");
+		llvm::BasicBlock* falseBlock = llvm::BasicBlock::Create("if-false");
+		llvm::BasicBlock* firstAlt = merge;
+		std::vector<llvm::BasicBlock*> branchBlocks;
+		bool branch = false;
+		bool hasElse = false;
+
+		// setup false block
+		if (falseBody.size() > 0) {
+			hasElse = true;
+			firstAlt = falseBlock;
+		}
+
+		// setup branch blocks (those are elseifs)
+		if (branches.size() > 0) {
+			branch = true;
+			for (uint32_t i = 0; i < branches.size(); ++i) {
+				branchBlocks.push_back(llvm::BasicBlock::Create("elseif"));
+			}
+			firstAlt = branchBlocks[0];
+		}
+
+		// verify that we have a boolean expression
+		llvm::Value* exval = expression->emit(mb);
+		if (exval->getType() != llvm::Type::Int1Ty) {
+			throw(ParseError("non-boolean if-expression"));
+		}
+
+		// emit conditional branch
+		mb.getIRBuilder().CreateCondBr(exval, trueBlock, firstAlt);
+
+		// emit true block
+		std::vector<Node*>::iterator it;
+		mb.getIRBuilder().SetInsertPoint(trueBlock);
+		for (it = trueBody.begin(); it != trueBody.end(); ++it) {
+			(*it)->emit(mb);
+		}
+		// we must only emit a branch to the next block
+		// if the true body contained no return statement
+		if (trueBody.size() > 0
+			&& dynamic_cast<Return*>(trueBody.at(trueBody.size() - 1)) == NULL) {
+			mb.getIRBuilder().CreateBr(merge);
+		}
+
+		// emit branch blocks if we have any
+		if (branch) {
+			for (uint32_t i = 0; i < branches.size(); ++i) {
+				Conditional* cond = branches.at(i);
+				llvm::BasicBlock* block = branchBlocks.at(i);
+				fun->getBasicBlockList().push_back(block);
+				mb.getIRBuilder().SetInsertPoint(block);
+				llvm::Value* val = cond->expression->emit(mb);
+				if (val->getType() != llvm::Type::Int1Ty) {
+					throw(ParseError("non-boolean else-if-expression"));
+				}
+				// if this is the last one we branch to
+				// the final merge block, otherwise we branch
+				// to the next block in the list
+				llvm::BasicBlock* branchBlock = llvm::BasicBlock::Create("elseif-true");
+				llvm::BasicBlock* nextAlt = NULL;
+				if (i == branches.size() - 1) {
+					nextAlt = hasElse ? falseBlock : merge;
+				}
+				else {
+					nextAlt = branchBlocks.at(i + 1);
+				}
+
+				// emit conditional branch
+				mb.getIRBuilder().CreateCondBr(val, branchBlock, nextAlt);
+
+				// emit branch body
+				fun->getBasicBlockList().push_back(branchBlock);
+				mb.getIRBuilder().SetInsertPoint(branchBlock);
+				for (it = cond->trueBody.begin(); it != cond->trueBody.end(); ++it) {
+					(*it)->emit(mb);
+				}
+				// we must only emit a branch to the next block
+				// if the true body contained no return statement
+				if (cond->trueBody.size() > 0
+					&& dynamic_cast<Return*>(cond->trueBody.at(cond->trueBody.size() - 1)) == NULL) {
+					mb.getIRBuilder().CreateBr(merge);
+				}
+			}
+		}
+
+		// emit else block if we have one
+		if (hasElse) {
+			fun->getBasicBlockList().push_back(falseBlock);
+			mb.getIRBuilder().SetInsertPoint(falseBlock);
+			for (it = falseBody.begin(); it != falseBody.end(); ++it) {
+				(*it)->emit(mb);
+			}
+			// we must only emit a branch to the next block
+			// if the false body contained no return statement
+			if (falseBody.size() > 0
+				&& dynamic_cast<Return*>(falseBody.at(falseBody.size() - 1)) == NULL) {
+				mb.getIRBuilder().CreateBr(merge);
+			}
+		}
+
+		// emit merge block
+		fun->getBasicBlockList().push_back(merge);
+		mb.getIRBuilder().SetInsertPoint(merge);
+
+		value = merge;
 	}
 
 	/*
 	 * implementation of Callable
 	 */
 	void ast::Callable::assemble(ast::ModuleBuilder& mb) {
+		// noop
+	}
+
+	void ast::Callable::emitDefinition(ast::ModuleBuilder& mb) {
+		if (mb.isDeclared(name)) {
+			std::string err = "symbol ";
+			err += name;
+			err += " is already declared";
+			throw(ParseError(err));
+		}
 		llvm::FunctionType* funtype = llvm::FunctionType::get(
 			assemblyType, parameterTypes, false);
 		llvm::Function* fun = llvm::Function::Create(
 			funtype, llvm::Function::ExternalLinkage, name, mb.getModule());
 
 		value = fun;
+		mb.declareSymbol(this);
 	}
 
 	/*
 	 * implementation of Return
 	 */
 	void ast::Return::assemble(ast::ModuleBuilder& mb) {
-		// TODO
-		assert(false && "Return::assemble not yet implemented");
+		if (expression == NULL) {
+			value = mb.getIRBuilder().CreateRetVoid();
+			return;
+		}
+		value = mb.getIRBuilder().CreateRet(expression->emit(mb));
 	}
 
 	/*
@@ -180,8 +495,57 @@ using namespace kensho;
 		int numFuns = functions->size();
 		for (int i = 0; i < numFuns; ++i) {
 			Callable* cb = functions->at(i);
-			//std::cout << "function \"" << cb->getName() << "\"\n";
+			cb->emitDefinition(*this);
+		}
+		for (int i = 0; i < numFuns; ++i) {
+			Callable* cb = functions->at(i);
 			cb->emit(*this);
+		}
+	}
+
+	llvm::Value* ast::ModuleBuilder::createBinaryOperator(
+		uint32_t type, llvm::Value* left, llvm::Value* right)
+	{
+		switch (type) {
+			case OP_ADD:
+				return irBuilder.CreateAdd(left, right, "add");
+			case OP_SUB:
+				return irBuilder.CreateSub(left, right, "sub");
+			case OP_MUL:
+				return irBuilder.CreateMul(left, right, "mul");
+			case OP_DIV:
+				return irBuilder.CreateSDiv(left, right, "div");
+			case OP_AND:
+			case OP_BIT_AND:
+				return irBuilder.CreateAnd(left, right, "and");
+			case OP_OR:
+			case OP_BIT_OR:
+				return irBuilder.CreateOr(left, right, "or");
+			case OP_XOR:
+				return irBuilder.CreateXor(left, right, "xor");
+
+			case CMP_EQ:
+				return irBuilder.CreateICmpEQ(left, right, "eq");
+			case CMP_NEQ:
+				return irBuilder.CreateICmpNE(left, right, "neq");
+			case CMP_LT:
+				return irBuilder.CreateICmpSLT(left, right, "lt");
+			case CMP_LTE:
+				return irBuilder.CreateICmpSLE(left, right, "lte");
+			case CMP_GT:
+				return irBuilder.CreateICmpSGT(left, right, "gt");
+			case CMP_GTE:
+				return irBuilder.CreateICmpSGE(left, right, "gte");
+
+			case OP_SHIFT_L:
+				return irBuilder.CreateShl(left, right, "shl");
+			case OP_SHIFT_R:
+				return irBuilder.CreateLShr(left, right, "lshr");
+			case OP_USHIFT_R:
+				return irBuilder.CreateAShr(left, right, "ashr");
+
+			default:
+				assert(false && "operator not handled");
 		}
 	}
 
@@ -205,9 +569,8 @@ using namespace kensho;
 				return llvm::Type::FloatTy;
 			case T_DOUBLE:
 				return llvm::Type::DoubleTy;
-			default:
-				assert(false && "type not handled");
 		}
 
 		return NULL;
 	}
+

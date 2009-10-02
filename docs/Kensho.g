@@ -50,7 +50,6 @@ tokens
 	OP_XOR			= '^';
 	OP_SHIFT_L		= '<<';
 	OP_SHIFT_R		= '>>';
-	OP_USHIFT_L		= '<<<';
 	OP_USHIFT_R		= '>>>';
 	
 	CMP_EQ			= '==';
@@ -131,7 +130,6 @@ tokens
 			
 			case OP_SHIFT_L:
 			case OP_SHIFT_R:
-			case OP_USHIFT_L:
 			case OP_USHIFT_R:	return 3;
 			
 			case CMP_LT:
