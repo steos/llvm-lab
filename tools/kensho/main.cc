@@ -22,6 +22,13 @@
 // always include antlr last!
 #include <parser.hpp>
 
+#ifdef WIN32
+#define KENNI_API extern "C" __declspec(dllexport) __cdecl
+#else
+#define KENNI_API extern "C"
+#endif
+
+
 	using namespace kensho;
 
 	enum ExitCode {
@@ -131,26 +138,12 @@
 		return EXIT_OK;
 	}
 
-	extern "C"
-#ifdef WIN32
-	__declspec(dllexport)
-#endif
-	void
-#ifdef WIN32
-	__cdecl
-#endif
+	KENNI_API void
 	iprintln(int32_t i) {
 		std::cout << i << "\n";
 	}
 
-	extern "C"
-#ifdef WIN32
-	__declspec(dllexport)
-#endif
-	void
-#ifdef WIN32
-	__cdecl
-#endif
+	KENNI_API void
 	cprintln(int32_t i) {
 		std::cout << (char)i << "\n";
 	}
