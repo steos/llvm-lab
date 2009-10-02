@@ -242,15 +242,16 @@ using namespace kensho;
 		int32_t numStats = body.size();
 		for (int32_t i = 0; i < numStats; ++i) {
 			body.at(i)->emit(mb);
+			if (body.at(i)->isReturnStatement() && i < body.size() - 1) {
+				throw(ParseError("unreachable code after return statement"));
+			}
 		}
 
-		// check if we have a return statement
-		Return* ret = numStats > 0 ?
-			dynamic_cast<Return*>(body.at(numStats - 1)) : NULL;
 		// if we have no return statement and the function
 		// returns void we synthesize a return statement
 		// otherwise bail out with error
-		if (ret == NULL) {
+		if (numStats > 0
+			&& body.at(numStats - 1)->isReturnStatement() == false) {
 			if (type == T_VOID) {
 				Return* returnStat = new Return(NULL);
 				returnStat->emit(mb);
@@ -262,6 +263,7 @@ using namespace kensho;
 			}
 		}
 		else {
+			Return* ret = dynamic_cast<Return*>(body.at(numStats - 1));
 			ret->emit(mb);
 			// verify type match
 			Node* ex = ret->getExpression();
@@ -379,15 +381,17 @@ using namespace kensho;
 		mb.getIRBuilder().CreateCondBr(exval, trueBlock, firstAlt);
 
 		// emit true block
-		std::vector<Node*>::iterator it;
 		mb.getIRBuilder().SetInsertPoint(trueBlock);
-		for (it = trueBody.begin(); it != trueBody.end(); ++it) {
-			(*it)->emit(mb);
+		for (uint32_t i = 0; i < trueBody.size(); ++i) {
+			trueBody.at(i)->emit(mb);
+			if (trueBody.at(i)->isReturnStatement() && i < trueBody.size() - 1) {
+				throw(ParseError("unreachable code after return statement"));
+			}
 		}
 		// we must only emit a branch to the next block
 		// if the true body contained no return statement
 		if (trueBody.size() > 0
-			&& dynamic_cast<Return*>(trueBody.at(trueBody.size() - 1)) == NULL) {
+			&& false == trueBody.at(trueBody.size() - 1)->isReturnStatement()) {
 			mb.getIRBuilder().CreateBr(merge);
 		}
 
@@ -420,13 +424,16 @@ using namespace kensho;
 				// emit branch body
 				fun->getBasicBlockList().push_back(branchBlock);
 				mb.getIRBuilder().SetInsertPoint(branchBlock);
-				for (it = cond->trueBody.begin(); it != cond->trueBody.end(); ++it) {
-					(*it)->emit(mb);
+				for (uint32_t i = 0; i < cond->trueBody.size(); ++i) {
+					cond->trueBody.at(i)->emit(mb);
+					if (cond->trueBody.at(i)->isReturnStatement() && i < cond->trueBody.size() - 1) {
+						throw(ParseError("unreachable code after return statement"));
+					}
 				}
 				// we must only emit a branch to the next block
 				// if the true body contained no return statement
 				if (cond->trueBody.size() > 0
-					&& dynamic_cast<Return*>(cond->trueBody.at(cond->trueBody.size() - 1)) == NULL) {
+					&& false == cond->trueBody.at(cond->trueBody.size() - 1)->isReturnStatement()) {
 					mb.getIRBuilder().CreateBr(merge);
 				}
 			}
@@ -436,13 +443,16 @@ using namespace kensho;
 		if (hasElse) {
 			fun->getBasicBlockList().push_back(falseBlock);
 			mb.getIRBuilder().SetInsertPoint(falseBlock);
-			for (it = falseBody.begin(); it != falseBody.end(); ++it) {
-				(*it)->emit(mb);
+			for (uint32_t i = 0; i < falseBody.size(); ++i) {
+				falseBody.at(i)->emit(mb);
+				if (falseBody.at(i)->isReturnStatement() && i < falseBody.size() - 1) {
+					throw(ParseError("unreachable code after return statement"));
+				}
 			}
 			// we must only emit a branch to the next block
 			// if the false body contained no return statement
 			if (falseBody.size() > 0
-				&& dynamic_cast<Return*>(falseBody.at(falseBody.size() - 1)) == NULL) {
+				&& false == falseBody.at(falseBody.size() - 1)->isReturnStatement()) {
 				mb.getIRBuilder().CreateBr(merge);
 			}
 		}

@@ -48,8 +48,13 @@ namespace ast {
 		void setSourcePosition(int32_t, int32_t);
 		int32_t getLine();
 		int32_t getOffset();
+		virtual bool isReturnStatement();
 		virtual ~Node() {};
 	};
+
+	inline bool Node::isReturnStatement() {
+		return false;
+	}
 
 	inline void Node::setSourcePosition(int32_t line, int32_t offset) {
 		this->line = line;
@@ -340,7 +345,12 @@ namespace ast {
 		Node* getExpression() {
 			return expression;
 		}
+		virtual bool isReturnStatement();
 	};
+
+	inline bool Return::isReturnStatement() {
+		return true;
+	}
 
 	/*
 	 * The ModuleBuilder class
