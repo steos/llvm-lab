@@ -15,28 +15,32 @@
 
  # verify that we have enough args
  if test $# -ne 4 ; then
-	echo "missing arguments"
+	echo "unexpected number of arguments, expected 4 got $#"
 	exit 1
  fi
- 
+
  GRAMMAR_SRC="$1"
  GRAMMAR_OUT="$2"
  GRAMMAR_DST_C="$3"
  GRAMMAR_DST_H="$4"
  CWD=`pwd`
  
- SRCDIR=`dirname $GRAMMAR_SRC`;
+ if test -f $GRAMMAR_SRC ; then
+ 	SRCDIR=`dirname $GRAMMAR_SRC`;
+ else
+ 	SRCDIR=$GRAMMAR_SRC
+ fi
  
  if test ! -d $SRCDIR ; then
- 	echo "Error: $SRCDIR is no directory"
+ 	echo "Error: source directory $SRCDIR is no directory"
  	exit 1
  fi
  if test ! -d $GRAMMAR_DST_C ; then
- 	echo "Error: $GRAMMAR_DST_C is no directory"
+ 	echo "Error: destination for implementation files $GRAMMAR_DST_C is no directory"
  	exit 1
  fi
  if test ! -d $GRAMMAR_DST_H ; then
- 	echo "Error: $GRAMMAR_DST_H is no directory"
+ 	echo "Error: destination for headers files $GRAMMAR_DST_H is no directory"
  	exit 1
  fi
  
@@ -67,7 +71,7 @@
  	else
  		# (re)generate parser
  		echo -n "regenerating grammar with ANTLR 3.1.x ... "
- 		antlr -o $GRAMMAR_OUT $GRAMMAR_SRC > "$GRAMMAR_OUT/antlr.log" 2>&1
+ 		antlr -o $GRAMMAR_OUT "$GRAMMAR_SRC/*.g" > "$GRAMMAR_OUT/antlr.log" 2>&1
  		if test $? -ne 0; then
  			echo "ERROR"
  			cat "$GRAMMAR_OUT/antlr.log"

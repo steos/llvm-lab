@@ -57,21 +57,21 @@
 
 	Options parse_args(int argc, char** argv) {
 		Options op;
-		op.mode = MODE_DUMP_AST;
+		op.mode = MODE_RUN;
 		op.optimize = false;
 		op.mem2reg = false;
 
 		for (int i = 1; i < argc; i++) {
-			if (argv[i] == "-ast") {
+			if (std::strcmp(argv[i], "-ast") == 0) {
 				op.mode = MODE_DUMP_AST;
 			}
-			else if (argv[i] == "-ir") {
+			else if (std::strcmp(argv[i], "-ir") == 0) {
 				op.mode = MODE_DUMP_IR;
 			}
-			else if (argv[i] == "-o") {
+			else if (std::strcmp(argv[i], "-o") == 0) {
 				op.optimize = true;
 			}
-			else if (argv[i] == "-no-mem2reg") {
+			else if (std::strcmp(argv[i], "-no-mem2reg") == 0) {
 				op.mem2reg = false;
 			}
 			else {
@@ -101,19 +101,26 @@
 			const std::string file = op.files.at(0);
 			Parser parser(file);
 			antlr::ast_t ast = parser.parse();
-			parser.dumpNode(ast.tree);
 
+			if (op.mode == MODE_DUMP_AST) {
+				parser.dumpNode(ast.tree);
+				return EXIT_OK;
+			}
+
+			parser.createTreeParser();
+			antlr::treeast_t treeAst = parser.parseTree();
+			// TODO
 		}
 		catch (ParseError& e) {
-			std::cout << e.getMessage();
+			std::cerr << e.getMessage();
 			if (e.getLine() > 0) {
-				std::cout << " on line " << e.getLine();
+				std::cerr << " on line " << e.getLine();
 			}
-			std::cout << "\n";
+			std::cerr << "\n";
 			return EXIT_PARSE_ERROR;
 		}
 		catch (Error& e) {
-			std::cout << e.getMessage() << "\n";
+			std::cerr << e.getMessage() << "\n";
 			return EXIT_ERROR;
 		}
 

@@ -14,8 +14,12 @@
  */
 
 #include <ast.hpp>
+#include <ModuleBuilder.hpp>
+#include <llvm/Type.h>
+#include <KenshoLexer.h>
 
 using namespace kensho;
+
 
 	/*
 	 * implementation of VariableDefinition
@@ -46,8 +50,56 @@ using namespace kensho;
 	}
 
 	/*
+	 * implementation of UnaryExpression
+	 */
+	void ast::UnaryExpression::assemble(ast::ModuleBuilder& mb) {
+		// TODO
+	}
+
+	/*
 	 * implementation of Function
 	 */
 	void ast::Function::assemble(ast::ModuleBuilder& mb) {
 		// TODO
+	}
+
+	/*
+	 * implementation of Call
+	 */
+	void ast::Call::assemble(ast::ModuleBuilder& mb) {
+		// TODO
+	}
+
+	/*
+	 * implementation of Cast
+	 */
+	void ast::Cast::assemble(ast::ModuleBuilder& mb) {
+		// TODO
+	}
+
+	const llvm::Type* ast::toAssemblyType(uint32_t type)
+	{
+		switch (type) {
+			case T_VOID:
+				return llvm::Type::VoidTy;
+			case T_BOOL:
+				return llvm::Type::Int1Ty;
+			case T_BYTE:
+				return llvm::Type::Int8Ty;
+			case T_SHORT:
+				return llvm::Type::Int16Ty;
+			case T_INT:
+			case T_CHAR:
+				return llvm::Type::Int32Ty;
+			case T_LONG:
+				return llvm::Type::Int64Ty;
+			case T_FLOAT:
+				return llvm::Type::FloatTy;
+			case T_DOUBLE:
+				return llvm::Type::DoubleTy;
+			default:
+				assert(false && "type not handled");
+		}
+
+		return NULL;
 	}

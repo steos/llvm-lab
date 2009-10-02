@@ -4,6 +4,8 @@ TOOLNAME = kensho
 
 USEDLIBS = kensho
 
+LINK_COMPONENTS := support system core
+
 include $(LEVEL)/Makefile.common
 
 CXXFLAGS += -fexceptions

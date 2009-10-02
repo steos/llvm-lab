@@ -20,9 +20,6 @@
 #include <llvm/Value.h>
 #include <llvm/Type.h>
 
-// always include antlr last!
-#include <antlr.hpp>
-
 namespace kensho {
 namespace ast {
 
@@ -32,6 +29,8 @@ namespace ast {
 	 * of the symbol table etc.)
 	 */
 	class ModuleBuilder;
+
+	const llvm::Type* toAssemblyType(uint32_t type);
 
 	/*
 	 * the base class every AST node has to implement
@@ -82,23 +81,31 @@ namespace ast {
 	class Symbol : public Node {
 	protected:
 		std::string name;
-		const llvm::Type* type;
+		uint32_t type;
+		const llvm::Type* assemblyType;
 	protected:
 		virtual void assemble(ModuleBuilder&) = 0;
 	public:
-		Symbol(std::string name, const llvm::Type* type) :
-			name(name), type(type) {};
+		Symbol(std::string name, uint32_t type) :
+			name(name), type(type) {
+			assemblyType = toAssemblyType(type);
+		};
 		std::string getName();
-		const llvm::Type* getType();
+		uint32_t getType();
+		const llvm::Type* getAssemblyType();
 		virtual ~Symbol() {};
 	};
 
-	inline const llvm::Type* Symbol::getType() {
+	inline uint32_t Symbol::getType() {
 		return type;
 	}
 
 	inline std::string Symbol::getName() {
 		return name;
+	}
+
+	inline const llvm::Type* Symbol::getAssemblyType() {
+		return assemblyType;
 	}
 
 	/*
@@ -110,16 +117,16 @@ namespace ast {
 	 */
 	class Callable : public Symbol {
 	protected:
-		std::vector<const llvm::Type*> parameterTypes;
+		std::vector<uint32_t> parameterTypes;
 		virtual void assemble(ModuleBuilder& mb) = 0;
 	public:
-		Callable(std::string name, const llvm::Type* type) :
+		Callable(std::string name, uint32_t type) :
 			Symbol(name, type) {};
-		virtual void addParameter(const llvm::Type* type);
+		virtual void addParameter(uint32_t type);
 		virtual ~Callable() {};
 	};
 
-	inline void Callable::addParameter(const llvm::Type* type) {
+	inline void Callable::addParameter(uint32_t type) {
 		parameterTypes.push_back(type);
 	}
 
@@ -130,7 +137,7 @@ namespace ast {
 	protected:
 		virtual void assemble(ModuleBuilder& mb);
 	public:
-		VariableDefinition(std::string name, const llvm::Type* type) :
+		VariableDefinition(std::string name, uint32_t type) :
 			Symbol(name, type) {};
 	};
 
@@ -139,18 +146,25 @@ namespace ast {
 	 */
 	class Variable : public Node {
 	private:
-		VariableDefinition* def;
+		std::string name;
 	protected:
 		virtual void assemble(ModuleBuilder&);
 	public:
-		Variable(VariableDefinition* def) : def(def) {};
+		Variable(std::string name) : name(name) {};
 	};
 
 	/*
-	 * TODO unary expression
+	 * a unary expression
 	 */
 	class UnaryExpression : public Node {
-
+	private:
+		uint32_t token;
+		Node* expression;
+	protected:
+		virtual void assemble(ModuleBuilder&);
+	public:
+		UnaryExpression(uint32_t token, Node* expression) :
+			token(token), expression(expression) {};
 	};
 
 	/*
@@ -158,11 +172,22 @@ namespace ast {
 	 */
 	class BinaryExpression : public Node {
 	private:
-		antlr::token_t token;
+		uint32_t token;
+		Node* left;
+		Node* right;
 	protected:
 		virtual void assemble(ModuleBuilder&);
 	public:
-		BinaryExpression(antlr::token_t token) : token(token) {};
+		BinaryExpression(uint32_t token, Node* left, Node* right) :
+			token(token), left(left), right(right) {};
+
+		Node* getLeft() {
+			return left;
+		}
+
+		Node* getRight() {
+			return right;
+		}
 	};
 
 	/*
@@ -170,11 +195,12 @@ namespace ast {
 	 */
 	class Literal : public Node {
 	private:
-		antlr::token_t token;
+		uint32_t tokenType;
+		std::string text;
 	protected:
 		virtual void assemble(ModuleBuilder& mb);
 	public:
-		Literal(antlr::token_t token) : token(token) {};
+		Literal(uint32_t tokenType, std::string text) : tokenType(tokenType), text(text) {};
 	};
 
 	/*
@@ -187,13 +213,13 @@ namespace ast {
 	protected:
 		virtual void assemble(ModuleBuilder& mb);
 	public:
-		Function(std::string name, const llvm::Type* type) :
+		Function(std::string name, uint32_t type) :
 			Callable(name, type) {};
-		virtual void addParameter(std::string name, const llvm::Type* type);
+		virtual void addParameter(std::string name, uint32_t type);
 		void addBodyNode(Node*);
 	};
 
-	inline void Function::addParameter(std::string name, const llvm::Type* type) {
+	inline void Function::addParameter(std::string name, uint32_t type) {
 		parameterNames.push_back(name);
 		parameterTypes.push_back(type);
 	}
@@ -201,6 +227,33 @@ namespace ast {
 	inline void Function::addBodyNode(Node* node) {
 		body.push_back(node);
 	}
+
+	class Call : public Node {
+	private:
+		std::string name;
+		std::vector<Node*> arguments;
+	protected:
+		virtual void assemble(ModuleBuilder& mb);
+	public:
+		Call(std::string name) : name(name) {};
+		void addArgument(Node* node) {
+			arguments.push_back(node);
+		}
+		int countArguments() {
+			return arguments.size();
+		}
+	};
+
+	class Cast : public Node {
+	private:
+		int32_t type;
+		Node* expression;
+	protected:
+		virtual void assemble(ModuleBuilder& mb);
+	public:
+		Cast(int32_t type, Node* expression) :
+			type(type), expression(expression) {};
+	};
 }}
 
 

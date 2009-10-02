@@ -16,6 +16,14 @@
 #ifndef ANTLR_HPP_
 #define ANTLR_HPP_
 
+// Must include TreeParser first because
+// it includes ast.hpp and this in turn includes
+// llvm headers. Otherwise antlr3.h gets included
+// before the llvm headers and this messes everything up, i.e.
+// you'll get compile errors that look like types are missing
+// from the llvm headers (antlr3c obviously redefines some
+// vital stuff for whatever idiotic reason...)
+#include <KenshoTreeParser.h>
 #include <KenshoLexer.h>
 #include <KenshoParser.h>
 
@@ -26,19 +34,22 @@ namespace antlr {
 	typedef ::pANTLR3_COMMON_TOKEN token_t;
 	typedef ::pKenshoLexer lexer_t;
 	typedef ::pKenshoParser parser_t;
+	typedef ::pKenshoTreeParser treeparser_t;
 	typedef ::pANTLR3_INPUT_STREAM istream_t;
 	typedef ::pANTLR3_COMMON_TOKEN_STREAM tokstream_t;
 	typedef ::KenshoParser_program_return ast_t;
+	typedef ::KenshoTreeParser_program_return treeast_t;
+	typedef ::pANTLR3_COMMON_TREE_NODE_STREAM nodestream_t;
 
 	// helper functions
-	inline std::string text(antlr::node_t& node, antlr::parser_t& parser) {
+	inline std::string text(antlr::node_t& node) {
 		int type = node->getType(node);
 		std::string label(antlrTokenName(type));
 		antlr::string_t text = node->getText(node);
 		if (text != NULL) {
-			label += " [\"";
+			label += " [ ";
 			label += (char*)text->chars;
-			label += "\"]";
+			label += " ]";
 		}
 		return label;
 	}
