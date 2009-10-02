@@ -191,29 +191,11 @@ using namespace kensho;
 		else {
 			llvm::Value* val = expression->emit(mb);
 			if (token == OP_NOT || token == OP_BIT_NOT) {
-				// xor with all bits set
-				if (val->getType()->isInteger()) {
-					throw(ParseError("cannot negate non-integer type"));
-				}
-				value = mb.getIRBuilder().CreateXor(
-					val,
-					llvm::ConstantInt::get(val->getType(), UINT64_MAX, false)
-				);
+				value = mb.getIRBuilder().CreateNot(val, "not");
 			}
 			else if (token == OP_SUB) {
 				// sub from 0 depending on type
-				if (val->getType()->isInteger()) {
-					value = mb.getIRBuilder().CreateSub(
-						llvm::ConstantInt::get(val->getType(), 0, true),
-						val
-					);
-				}
-				else if (val->getType()->isFloatingPoint()) {
-					value = mb.getIRBuilder().CreateSub(
-						llvm::ConstantFP::get(val->getType(), 0),
-						val
-					);
-				}
+				value = mb.getIRBuilder().CreateNeg(val, "neg");
 			}
 			else {
 				// we can ignore OP_ADD
