@@ -59,7 +59,7 @@
 
 	Options parse_args(int argc, char** argv) {
 		Options op;
-		op.mode = MODE_DUMP_IR;
+		op.mode = MODE_RUN;
 		op.optimize = false;
 		op.mem2reg = true;
 
@@ -82,6 +82,77 @@
 		}
 
 		return op;
+	}
+
+// define lazy function creator for win32
+#ifdef WIN32
+	void* kenni_function_factory(const std::string& name) {
+		FARPROC ptr = GetProcAddress(GetModuleHandle(NULL), name.c_str());
+		if (ptr == NULL) {
+			std::cerr << "failed to get address of function " << name << "\n";
+			abort();
+		}
+		return (void*)ptr;
+	}
+#endif
+
+	ExitCode runJIT(ast::ModuleBuilder& mb) {
+		ast::Function* astFun = dynamic_cast<ast::Function*>(mb.getSymbol("main"));
+		if (!astFun) {
+			std::cerr << "no entry point main defined\n";
+			return EXIT_PARSE_ERROR;
+		}
+		llvm::Function* fun = llvm::cast<llvm::Function>(astFun->getValue());
+		if (fun->getFunctionType()->getReturnType() != llvm::Type::VoidTy) {
+			std::cerr << "entry point main must return void\n";
+			return EXIT_PARSE_ERROR;
+		}
+		if (fun->getFunctionType()->getNumParams() > 0) {
+			std::cerr << "entry point main must not take any parameters\n";
+			return EXIT_PARSE_ERROR;
+		}
+
+		// get function pointer to entry point
+		llvm::ExecutionEngine* engine = mb.getEngine();
+
+// if we're running on win32 API dlsym is not available
+// we need to install a lazy function creator that
+// emulates the default behaviour using win32 equivalents
+#ifdef WIN32
+		engine->InstallLazyFunctionCreator(&kenni_function_factory);
+#endif
+
+		void* funPtr = engine->getPointerToFunction(fun);
+		void (*callablePtr)() = (void(*)())(intptr_t) funPtr;
+
+		// invoke entry point
+		callablePtr();
+
+		return EXIT_OK;
+	}
+
+	extern "C"
+#ifdef WIN32
+	__declspec(dllexport)
+#endif
+	void
+#ifdef WIN32
+	__cdecl
+#endif
+	iprintln(int32_t i) {
+		std::cout << i << "\n";
+	}
+
+	extern "C"
+#ifdef WIN32
+	__declspec(dllexport)
+#endif
+	void
+#ifdef WIN32
+	__cdecl
+#endif
+	cprintln(int32_t i) {
+		std::cout << (char)i << "\n";
 	}
 
 	int main(int argc, char** argv)
@@ -119,7 +190,7 @@
 				return EXIT_OK;
 			}
 
-			// TODO JIT it or emit bitcode or assembly
+			return runJIT(mb);
 		}
 		catch (ParseError& e) {
 			std::cerr << e.getMessage();
