@@ -47,10 +47,11 @@
   	DIFFTMP="$TMP.diff"
  	$KENSHO $s > $TMP 2>&1
  	diff -T $TMP $OUT > $DIFFTMP 2>&1
- 	if test $? -ne 0 ; then
+	EXIT_STATUS=$?
+ 	if test $EXIT_STATUS -ne "0" ; then
  		errCount=`expr $errCount + 1`
  		echo "ERROR"
- 		echo "Expected output didn't match:"
+ 		echo "diff returned $EXIT_STATUS, expected output didn't match:"
  		echo "-----------------------------"
  		cat $DIFFTMP
  		echo "-----------------------------"
