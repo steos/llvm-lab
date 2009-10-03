@@ -93,12 +93,8 @@
 
 // define lazy function creator for win32
 #ifdef WIN32
-	void* kenni_function_factory(const std::string& name) {
+	void* kenni_win32_function_factory(const std::string& name) {
 		FARPROC ptr = GetProcAddress(GetModuleHandle(NULL), name.c_str());
-		if (ptr == NULL) {
-			std::cerr << "failed to get address of function " << name << "\n";
-			abort();
-		}
 		return (void*)ptr;
 	}
 #endif
@@ -126,7 +122,7 @@
 // we need to install a lazy function creator that
 // emulates the default behaviour using win32 equivalents
 #ifdef WIN32
-		engine->InstallLazyFunctionCreator(&kenni_function_factory);
+		engine->InstallLazyFunctionCreator(&kenni_win32_function_factory);
 #endif
 
 		void* funPtr = engine->getPointerToFunction(fun);
@@ -138,13 +134,11 @@
 		return EXIT_OK;
 	}
 
-	KENNI_API void
-	iprintln(int32_t i) {
+	KENNI_API void iprintln(int32_t i) {
 		std::cout << i << "\n";
 	}
 
-	KENNI_API void
-	cprintln(int32_t i) {
+	KENNI_API void cprintln(int32_t i) {
 		std::cout << (char)i << "\n";
 	}
 
