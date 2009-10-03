@@ -331,8 +331,42 @@ using namespace kensho;
 	 * implementation of While
 	 */
 	void ast::While::assemble(ast::ModuleBuilder& mb) {
-		// TODO
-		assert(false && "While::assemble not yet implemented");
+		llvm::Function* fun = mb.getIRBuilder().GetInsertBlock()->getParent();
+
+		// create basic block for while condition, body and merge
+		llvm::BasicBlock* cond = llvm::BasicBlock::Create("while-cond");
+		llvm::BasicBlock* bodyBlock = llvm::BasicBlock::Create("while-body");
+		llvm::BasicBlock* merge = llvm::BasicBlock::Create("while-merge");
+
+		// branch to while condition
+		mb.getIRBuilder().CreateBr(cond);
+
+		// insert condition block and make it the current insert point
+		fun->getBasicBlockList().push_back(cond);
+		mb.getIRBuilder().SetInsertPoint(cond);
+
+		// emit while expression and conditional branch
+		llvm::Value* exval = expression->emit(mb);
+		mb.getIRBuilder().CreateCondBr(exval, bodyBlock, merge);
+
+		// emit while body
+		fun->getBasicBlockList().push_back(bodyBlock);
+		mb.getIRBuilder().SetInsertPoint(bodyBlock);
+		uint32_t stats = body.size();
+		for (uint32_t i = 0; i < stats; ++i) {
+			body.at(i)->emit(mb);
+		}
+		// if last statement in the while is no return statement
+		// we must emit an unconditional branch back to the while condition block
+		if (false == body.at(stats - 1)->isReturnStatement()) {
+			mb.getIRBuilder().CreateBr(cond);
+		}
+
+		// emit merge block
+		fun->getBasicBlockList().push_back(merge);
+		mb.getIRBuilder().SetInsertPoint(merge);
+
+		value = merge;
 	}
 
 	/*

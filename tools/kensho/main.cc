@@ -142,6 +142,14 @@
 		std::cout << (char)i << "\n";
 	}
 
+	KENNI_API void iprint(int32_t i) {
+		std::cout << i;
+	}
+
+	KENNI_API void cprint(int32_t c) {
+		std::cout << (char)c;
+	}
+
 	int main(int argc, char** argv)
 	{
 		try {
