@@ -1,16 +1,18 @@
 
 	void main() {
-		fib(24);
+		fib(42);
 	}
 	
 	void fib(int limit) {
-		int last = 0;
-		int x = 1;
+		int n = 0;
+		int m = 1;
+		int x = 0;
 		while (x < limit) {
-			iprint(x + last);
+			x = n + m;
+			n = m;
+			m = x;
+			iprint(x);
 			cprint(' ');
-			last = x;
-			x = x + 1;
 		}
 		cprint('\n');
 	}
