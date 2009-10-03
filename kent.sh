@@ -46,7 +46,11 @@
   	TMP=`echo $s | sed -e 's/.ks/.tmp/g'`
   	DIFFTMP="$TMP.diff"
  	$KENSHO $s > $TMP 2>&1
- 	diff -T $TMP $OUT > $DIFFTMP 2>&1
+ 	# we're using --strip-trailing-cr to make the diffs
+ 	# work with mingw/msys because the kensho programs
+ 	# only ever output LF line endings but msys/mingw
+ 	# converts them to CRLF.
+ 	diff -T --strip-trailing-cr $TMP $OUT > $DIFFTMP 2>&1
 	EXIT_STATUS=$?
  	if test $EXIT_STATUS -ne "0" ; then
  		errCount=`expr $errCount + 1`
