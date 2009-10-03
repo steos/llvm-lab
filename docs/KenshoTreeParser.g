@@ -66,13 +66,14 @@ function returns [kensho::ast::Function* node]
 	;	
 	
 signature returns [kensho::ast::Function* node]
+@init { uint32_t paramCount = 0; }
 	:	^(FUNSIG 
 			t=functionType 
 			n=ID {
 				std::string name((char*)$n->getText($n)->chars);
 				$node = new kensho::ast::Function(name, $t.tree->getType($t.tree));
 			} 
-			params[$node]*
+			params[$node, paramCount++]*
 		) 
 	;
 	
@@ -80,14 +81,13 @@ functionType
 	:	T_VOID | type
 	;	
 		
-params[kensho::ast::Function* node]
-@init { uint32_t paramCount = 0; }
+params[kensho::ast::Function* node, uint32_t index]
 	:	^(ARGDEF type n=ID) {
 			std::string name((char*)$n->getText($n)->chars);
 			$node->addParameter(name, $type.tree->getType($type.tree));
 			// add variable definition for the parameter
 			$node->addBodyNode(new kensho::ast::ParameterDefinition(
-				name, $node, paramCount++, $type.tree->getType($type.tree)
+				name, $node, index, $type.tree->getType($type.tree)
 			));
 		}
 	;
@@ -247,6 +247,7 @@ binop
 	| 	OP_SUB 
 	| 	OP_MUL 
 	| 	OP_DIV
+	|	OP_REM
 	|	OP_ASSIGN
 	|	OP_AND
 	|	OP_OR

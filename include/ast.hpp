@@ -224,7 +224,7 @@ namespace ast {
 		uint32_t getTokenType() {
 			return tokenType;
 		}
-		std::string getText() {
+		std::string& getText() {
 			return text;
 		}
 	};

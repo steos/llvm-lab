@@ -35,23 +35,36 @@
  	exit 1
  fi
  
+ errCount=0
+ testCount=0
+ successCount=0
+ 
  for s in `ls ./test/*.ks` ; do
+ 	testCount=`expr $testCount + 1`
  	echo -n "Running $s ... "
   	OUT=`echo $s | sed -e 's/.ks/.out/g'`
   	TMP=`echo $s | sed -e 's/.ks/.tmp/g'`
   	DIFFTMP="$TMP.diff"
  	$KENSHO $s > $TMP 2>&1
- 	diff $TMP $OUT > $DIFFTMP 2>&1
+ 	diff -T $TMP $OUT > $DIFFTMP 2>&1
  	if test $? -ne 0 ; then
+ 		errCount=`expr $errCount + 1`
  		echo "ERROR"
  		echo "Expected output didn't match:"
+ 		echo "-----------------------------"
  		cat $DIFFTMP
+ 		echo "-----------------------------"
  	else
+ 		successCount=`expr $successCount + 1`
  		echo "OK"
  	fi
  	rm $DIFFTMP
  	rm $TMP
  done
+ 
+ echo ""
+ echo "Ran $testCount tests total."
+ echo "$successCount tests were successful, $errCount tests failed."
  
  
  

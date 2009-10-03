@@ -190,7 +190,7 @@ using namespace kensho;
 			|| lit->getTokenType() == LITERAL_FLOAT)
 			&& (token == OP_ADD || token == OP_SUB)) {
 			if (token == OP_SUB) {
-				std::string text = lit->getText();
+				std::string& text = lit->getText();
 				text.insert(text.begin(), '-');
 			}
 			// ignore OP_ADD

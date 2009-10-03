@@ -44,6 +44,7 @@ tokens
 	OP_BIT_NOT 		= '~';
 	OP_AND			= '&&';
 	OP_OR			= '||';
+	OP_REM			= '%';
 	
 	OP_BIT_AND		= '&';
 	OP_BIT_OR		= '|';
@@ -123,31 +124,32 @@ tokens
 		switch (type) {
 			// note: lowest number binds most tightly i.e. has highest precedence
 			case OP_MUL:
-			case OP_DIV:		return 1;
+			case OP_DIV:		
+			case OP_REM:		return 1;
 			
-			case OP_ADD:
 			case OP_SUB:		return 2;
+			case OP_ADD:		return 3;
 			
 			case OP_SHIFT_L:
 			case OP_SHIFT_R:
-			case OP_USHIFT_R:	return 3;
+			case OP_USHIFT_R:	return 4;
 			
 			case CMP_LT:
 			case CMP_LTE:
 			case CMP_GT:	
-			case CMP_GTE:		return 4;
+			case CMP_GTE:		return 5;
 				
 			case CMP_EQ:
-			case CMP_NEQ:		return 5;
+			case CMP_NEQ:		return 6;
 			
-			case OP_BIT_AND:	return 6;
-			case OP_XOR:		return 7;
-			case OP_BIT_OR:		return 8;
+			case OP_BIT_AND:	return 7;
+			case OP_XOR:		return 8;
+			case OP_BIT_OR:		return 9;
 				
-			case OP_AND:		return 9;
-			case OP_OR:			return 10;
+			case OP_AND:		return 10;
+			case OP_OR:			return 11;
 			
-			case OP_ASSIGN:		return 11;
+			case OP_ASSIGN:		return 12;
 		
 			default:
 				// missing switch case
@@ -352,6 +354,7 @@ binop
 	| 	OP_SUB 
 	| 	OP_MUL 
 	| 	OP_DIV
+	|	OP_REM
 	|	OP_ASSIGN
 	|	OP_AND
 	|	OP_OR

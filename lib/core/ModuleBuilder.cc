@@ -105,6 +105,8 @@ using namespace kensho;
 				return irBuilder.CreateLShr(left, right, "lshr");
 			case OP_USHIFT_R:
 				return irBuilder.CreateAShr(left, right, "ashr");
+			case OP_REM:
+				return irBuilder.CreateSRem(left, right, "rem");
 
 			default:
 				assert(false && "operator not handled");
