@@ -1,1 +1,1 @@
-function foobar is not declared on line 4
+Parse Error: function foobar is not declared on line 4 at character offset 2

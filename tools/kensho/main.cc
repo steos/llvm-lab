@@ -192,9 +192,12 @@
 			return runJIT(mb);
 		}
 		catch (ParseError& e) {
-			std::cerr << e.getMessage();
+			std::cerr << "Parse Error: " << e.getMessage();
 			if (e.getLine() > 0) {
 				std::cerr << " on line " << e.getLine();
+			}
+			if (e.getOffset() > 0) {
+				std::cerr << " at character offset " << e.getOffset();
 			}
 			std::cerr << "\n";
 			return EXIT_PARSE_ERROR;

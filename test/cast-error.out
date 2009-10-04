@@ -1,1 +1,1 @@
-cannot cast boolean to numeric type on line 4
+Parse Error: cannot cast boolean to numeric type on line 4 at character offset 10

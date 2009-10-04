@@ -112,7 +112,7 @@ returnStatement returns [kensho::ast::Return* node]
 			( ex=expression { 
 				$node = new kensho::ast::Return($ex.node); 
 				pANTLR3_COMMON_TOKEN tok = $ex.tree->getToken($ex.tree);
-				$node->setSourcePosition(tok->getLine(tok), tok->getStartIndex(tok));
+				$node->setSourcePosition(tok->getLine(tok), tok->getCharPositionInLine(tok));
 			})?
 		)
 	;	
@@ -122,7 +122,7 @@ ifStat returns [kensho::ast::Conditional* node]
 			ex=expression {
 				$node = new kensho::ast::Conditional($ex.node);
 				pANTLR3_COMMON_TOKEN tok = $ex.tree->getToken($ex.tree);
-				$node->setSourcePosition(tok->getLine(tok), tok->getStartIndex(tok));
+				$node->setSourcePosition(tok->getLine(tok), tok->getCharPositionInLine(tok));
 			}
 			( statement {
 				$node->addTrueBodyNode($statement.node);
@@ -139,7 +139,7 @@ elseIfStat returns [kensho::ast::Conditional* node]
 			ex=expression {
 				$node = new kensho::ast::Conditional($ex.node);
 				pANTLR3_COMMON_TOKEN tok = $ex.tree->getToken($ex.tree);
-				$node->setSourcePosition(tok->getLine(tok), tok->getStartIndex(tok));
+				$node->setSourcePosition(tok->getLine(tok), tok->getCharPositionInLine(tok));
 			}
 			( statement {
 				$node->addTrueBodyNode($statement.node);
@@ -160,7 +160,7 @@ whileStat returns [kensho::ast::While* node]
 			ex=expression {
 				$node = new kensho::ast::While($ex.node);
 				pANTLR3_COMMON_TOKEN tok = $ex.tree->getToken($ex.tree);
-				$node->setSourcePosition(tok->getLine(tok), tok->getStartIndex(tok));
+				$node->setSourcePosition(tok->getLine(tok), tok->getCharPositionInLine(tok));
 			} 
 			( s=statement {
 				$node->addBodyNode($s.node);
@@ -204,19 +204,19 @@ expression returns [kensho::ast::Node* node]
 	|	^(UNOP unop unex=expression) {
 			pANTLR3_COMMON_TOKEN tok = $unop.tree->getToken($unop.tree);
 			$node = new kensho::ast::UnaryExpression(tok->getType(tok), $unex.node); 
-			$node->setSourcePosition(tok->getLine(tok), tok->getStartIndex(tok));
+			$node->setSourcePosition(tok->getLine(tok), tok->getCharPositionInLine(tok));
 		}
 	|	^(CAST type castex=expression) {
 			pANTLR3_COMMON_TOKEN tok = $type.tree->getToken($type.tree);
 			$node = new kensho::ast::Cast(tok->getType(tok), $castex.node);
-			$node->setSourcePosition(tok->getLine(tok), tok->getStartIndex(tok));
+			$node->setSourcePosition(tok->getLine(tok), tok->getCharPositionInLine(tok));
 		}
 	|	^(BINOP binop left=expression right=expression) {
 			pANTLR3_COMMON_TOKEN tok = $binop.tree->getToken($binop.tree);
 			$node = new kensho::ast::BinaryExpression(
 				tok->getType(tok), $left.node, $right.node
 			);
-			$node->setSourcePosition(tok->getLine(tok), tok->getStartIndex(tok));
+			$node->setSourcePosition(tok->getLine(tok), tok->getCharPositionInLine(tok));
 		}
 	;	
 	
@@ -241,7 +241,7 @@ literal returns [kensho::ast::Literal* node]
 		$literal.tree->getType($literal.tree),
 		std::string((char*)token->getText(token)->chars)
 	);
-	$node->setSourcePosition(token->getLine(token), token->getStartIndex(token));
+	$node->setSourcePosition(token->getLine(token), token->getCharPositionInLine(token));
 }
 	:	LITERAL_INT
 	|	LITERAL_OCT

@@ -17,35 +17,39 @@
  
  if test ! -d "Release/bin" ; then
  	if test ! -d "Debug/bin" ; then
- 		echo "no kensho build directory found"
+ 		echo " no kensho build directory found"
  		exit 1
  	else
- 		echo "Info: using Debug build"
+ 		echo " Info: using Debug build"
  		BASEDIR="Debug/bin"
  	fi
  else
- 	echo "Info: using Release build"
+ 	echo " Info: using Release build"
  	BASEDIR="Release/bin"
  fi
  
  KENSHO="$BASEDIR/kensho"
  
  if test ! -d "test" ; then
- 	echo "no test directory found"
+ 	echo " no test directory found"
  	exit 1
  fi
  
  errCount=0
  testCount=0
  successCount=0
+ skipCount=0
+ 
+ echo " =========================================================="
  
  for s in `ls ./test/*.ks` ; do
  	OUT=`echo $s | sed -e 's/.ks/.out/g'`
- 	testCount=`expr $testCount + 1`
- 	echo -n "Running $s ... "
  	if test ! -f $OUT ; then
- 		echo "SKIPPED: missing *.out file"
+ 		echo " Skipping $s because of missing *.out file"
+ 		skipCount=`expr $skipCount + 1`
  	else
+ 		testCount=`expr $testCount + 1`
+ 		printf ' Running %-43s' $s
 	  	TMP=`echo $s | sed -e 's/.ks/.tmp/g'`
 	  	DIFFTMP="$TMP.diff"
 	 	$KENSHO $s > $TMP 2>&1
@@ -57,23 +61,30 @@
 		EXIT_STATUS=$?
 	 	if test $EXIT_STATUS -ne "0" ; then
 	 		errCount=`expr $errCount + 1`
-	 		echo "ERROR"
-	 		echo "diff returned $EXIT_STATUS, expected output didn't match:"
-	 		echo "-----------------------------"
+	 		echo "FAILURE"
+	 		echo " diff returned $EXIT_STATUS, expected output didn't match:"
+	 		echo " -----------------------------"
 	 		cat $DIFFTMP
-	 		echo "-----------------------------"
+	 		echo " -----------------------------"
 	 	else
 	 		successCount=`expr $successCount + 1`
-	 		echo "OK"
+	 		echo "SUCCESS"
 	 	fi
 	 	rm $DIFFTMP
 	 	rm $TMP
 	 fi
  done
  
+ echo " =========================================================="
  echo ""
- echo "Ran $testCount tests total."
- echo "$successCount tests were successful, $errCount tests failed."
+ echo " Skipped: $skipCount"
+ echo " Success: $successCount"
+ echo " Failure: $errCount"
+ 
+ if [ "$errCount" = "0" ] ; then
+ 	echo ""
+ 	echo " Congratulations, all tests passed!"
+ fi
  
  
  

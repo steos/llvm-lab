@@ -104,10 +104,31 @@ tokens
 {
 	#include <vector>
 	#include <cassert>
+	#include <iostream>
+	#include <error.hpp>
+	
+	extern "C" void kenshoAntlrErrorReporter(pANTLR3_BASE_RECOGNIZER rec, pANTLR3_UINT8* tokens);
+}
+
+@parser::apifuncs {
+	RECOGNIZER->displayRecognitionError = kenshoAntlrErrorReporter;
 }
 
 @parser::members
 {
+	extern "C" void kenshoAntlrErrorReporter(pANTLR3_BASE_RECOGNIZER rec, pANTLR3_UINT8* tokens) {
+		assert(rec->state->exception->message != NULL);
+	
+		std::string err((char*)rec->state->exception->message);
+		std::string exp(antlrTokenName(rec->state->exception->expecting));
+		
+		throw(kensho::ParseError(
+			err + ", expected " + exp, 
+			rec->state->exception->line,
+			rec->state->exception->charPositionInLine
+		));
+	}
+
 	char* antlrTokenName(int type) {
 		return (char*)KenshoParserTokenNames[type];
 	}
