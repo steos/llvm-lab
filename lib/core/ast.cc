@@ -18,6 +18,7 @@
 #include <error.hpp>
 #include <llvm/Type.h>
 #include <llvm/Function.h>
+#include <boost/lexical_cast.hpp>
 #include <iostream>
 #include <KenshoLexer.h>
 
@@ -28,10 +29,7 @@ using namespace kensho;
 	 */
 	void ast::VariableDefinition::assemble(ast::ModuleBuilder& mb) {
 		if (mb.isDeclared(name)) {
-			std::string err = "symbol ";
-			err += name;
-			err += " is already declared";
-			throw(ParseError(err));
+			throw(ParseError("symbol " + name + " is already declared"));
 		}
 		value = mb.getIRBuilder().CreateAlloca(assemblyType, 0, name.c_str());
 		mb.declareSymbol(this);
@@ -49,19 +47,14 @@ using namespace kensho;
 	 */
 	void ast::Variable::assemble(ast::ModuleBuilder& mb) {
 		if (!mb.isDeclared(name)) {
-			std::string err = "variable ";
-			err += name;
-			err += " is not declared";
-			throw(ParseError(err));
+			throw(ParseError("variable " + name + " is not declared"));
 		}
 
 		Symbol* sym = mb.getSymbol(name);
 		// currently we only allow variables
 		VariableDefinition* var = dynamic_cast<VariableDefinition*>(sym);
 		if (var == NULL) {
-			std::string err = "symbol ";
-			err += name;
-			err += " is not a variable";
+			throw(ParseError("symbol " + name + " is not a variable"));
 		}
 
 		value = mb.getIRBuilder().CreateLoad(var->getValue(), name.c_str());
@@ -79,22 +72,32 @@ using namespace kensho;
 				value = llvm::ConstantInt::get(llvm::Type::Int1Ty, 0);
 				break;
 			case LITERAL_INT: {
-				char last = text[text.length() - 1];
-				const llvm::Type* type = (last == 'l' || last == 'L') ?
+				bool isLong = hasLongSuffix(text);
+				const llvm::Type* type = isLong ?
 						llvm::Type::Int64Ty : llvm::Type::Int32Ty;
 				value = llvm::ConstantInt::get(
 					type,
-					type == llvm::Type::Int64Ty ?
-						std::atol(text.c_str()) : std::atoi(text.c_str()),
+					isLong ?
+						boost::lexical_cast<int64_t>(text) :
+						boost::lexical_cast<int32_t>(text),
 					true
 				);
 				break;
 			}
 			case LITERAL_FLOAT: {
-				char last = text[text.length() - 1];
-				const llvm::Type* type = (last == 'd' || last == 'D') ?
-					llvm::Type::DoubleTy : llvm::Type::FloatTy;
-				value = llvm::ConstantFP::get(type, std::atof(text.c_str()));
+				bool isFloat = hasFloatSuffix(text);
+				const llvm::Type* type = hasFloatSuffix(text) ?
+						llvm::Type::FloatTy : llvm::Type::DoubleTy;
+				if (isFloat || hasDoubleSuffix(text)) {
+					text.erase(text.length() - 1, 1);
+				}
+
+				value = llvm::ConstantFP::get(
+					type,
+					isFloat ?
+						boost::lexical_cast<float>(text) :
+						boost::lexical_cast<double>(text)
+				);
 				break;
 			}
 			case LITERAL_HEX:
@@ -149,18 +152,16 @@ using namespace kensho;
 				throw(ParseError("can only assign to variables"));
 			}
 			if (!mb.isDeclared(var->getName())) {
-				std::string err = "variable ";
-				err += var->getName();
-				err += " is not declared";
-				throw(ParseError(err));
+				throw(ParseError("variable " + var->getName() + " is not declared"));
 			}
 			VariableDefinition* vardef = dynamic_cast<VariableDefinition*>(
 				mb.getSymbol(var->getName()));
 			assert(vardef != NULL);
 			if (vardef->getAssemblyType() != typeRight) {
-				std::string err = "type mismatch in variable assignment to ";
-				err += var->getName();
-				throw(ParseError(err));
+				llvm::Value* castVal = implicitTypeCast(
+					typeRight, vardef->getAssemblyType(), valRight, mb);
+				assert(castVal != NULL);
+				valRight = castVal;
 			}
 			value = mb.getIRBuilder().CreateStore(valRight, vardef->getValue());
 			// we're done for variable assignments
@@ -171,8 +172,17 @@ using namespace kensho;
 		typeLeft = valLeft->getType();
 
 		if (typeLeft != typeRight) {
-			// TODO
-			throw(ParseError("type mismatch in expression"));
+			llvm::Value* castval = NULL;
+			if (typeLeft < typeRight) {
+				castval = implicitTypeCast(
+					typeLeft, typeRight, valLeft, mb);
+			}
+			else if (typeLeft > typeRight) {
+				castval = implicitTypeCast(
+					typeRight, typeLeft, valRight, mb);
+			}
+			assert(castval != NULL);
+			valRight = castval;
 		}
 
 		value = mb.createBinaryOperator(token, valLeft, valRight);
@@ -250,9 +260,7 @@ using namespace kensho;
 				returnStat->emit(mb);
 			}
 			else {
-				std::string err = "missing return statement in non-void function ";
-				err += name;
-				throw(ParseError(err));
+				throw(ParseError("missing return statement in non-void function " + name));
 			}
 		}
 		else {
@@ -260,15 +268,10 @@ using namespace kensho;
 			// verify type match
 			Node* ex = ret->getExpression();
 			if (ex != NULL && type == T_VOID) {
-				std::string err = "void function ";
-				err += name;
-				err += " cannot return non-void type";
-				throw(ParseError(err));
+				throw(ParseError("void function " + name + " cannot return non-void type"));
 			}
 			else if (ex != NULL && ex->getValue()->getType() != assemblyType) {
-				std::string err = "type mismatch in return statement in function ";
-				err += name;
-				throw(ParseError(err));
+				throw(ParseError("type mismatch in return statement in function " + name));
 			}
 		}
 	}
@@ -278,25 +281,17 @@ using namespace kensho;
 	 */
 	void ast::Call::assemble(ast::ModuleBuilder& mb) {
 		if (!mb.isDeclared(name)) {
-			std::string err = "function ";
-			err += name;
-			err += " is not declared";
-			throw(ParseError(err));
+			throw(ParseError("function " + name + " is not declared"));
 		}
 
 		Callable* fun = dynamic_cast<Callable*>(mb.getSymbol(name));
 		if (fun == NULL) {
-			std::string err = "symbol ";
-			err += name;
-			err += " is not a function and cannot be called";
-			throw(ParseError(err));
+			throw(ParseError("symbol " + name + " is not a function and cannot be called"));
 		}
 
 		uint32_t numParams = fun->countParameters();
 		if (numParams != arguments.size()) {
-			std::string err = "argument count mismatch in call to function ";
-			err += name;
-			throw(ParseError(err));
+			throw(ParseError("argument count mismatch in call to function " + name));
 		}
 
 		std::vector<const llvm::Type*> expected = fun->getParameterTypes();
@@ -306,11 +301,8 @@ using namespace kensho;
 			Node* arg = arguments.at(i);
 			llvm::Value* val = arg->emit(mb);
 			if (expected.at(i) != val->getType()) {
-				std::string err = "type mismatch in call to function ";
-				err += name;
-				err += " for argument #";
-				err += i;
-				throw(ParseError(err));
+				throw(ParseError("type mismatch in call to function " + name
+					+ " for argument #" + boost::lexical_cast<std::string>(i)));
 			}
 			values.push_back(val);
 		}
@@ -323,8 +315,66 @@ using namespace kensho;
 	 * implementation of Cast
 	 */
 	void ast::Cast::assemble(ast::ModuleBuilder& mb) {
-		// TODO
-		assert(false && "Cast::assemble not yet implemented");
+		// emit expression to cast
+		llvm::Value* val = expression->emit(mb);
+		// do nothing if types match
+		if (val->getType() == assemblyType) {
+			return;
+		}
+		// case for integer to integer cast (truncation or extension)
+		if (val->getType()->isInteger() && assemblyType->isInteger()) {
+			uint32_t valBits = val->getType()->getPrimitiveSizeInBits();
+			uint32_t dstBits = assemblyType->getPrimitiveSizeInBits();
+			// special case for boolean => disallow
+			if ((valBits == 1 && dstBits > 1) || (dstBits == 1 && valBits > 1)) {
+				throw(ParseError("cannot cast numeric value to boolean"));
+			}
+			// truncation
+			if (valBits > dstBits) {
+				value = mb.getIRBuilder().CreateTrunc(val, assemblyType);
+			}
+			// extension
+			else if (valBits < dstBits) {
+				value = mb.getIRBuilder().CreateSExt(val, assemblyType);
+			}
+			else {
+				// can't happen
+				assert(false);
+			}
+		}
+		// floating point to integer
+		if (val->getType()->isFloatingPoint() && assemblyType->isInteger()) {
+			// disallow bool
+			if (assemblyType->getPrimitiveSizeInBits() == 1) {
+				throw(ParseError("cannot cast floating point to boolean"));
+			}
+			value = mb.getIRBuilder().CreateFPToSI(val, assemblyType);
+		}
+		// integer to floating point
+		if (val->getType()->isInteger() && assemblyType->isFloatingPoint()) {
+			// disallow boolean
+			if (val->getType()->getPrimitiveSizeInBits() == 1) {
+				throw(ParseError("cannot cast boolean to floating point"));
+			}
+			value = mb.getIRBuilder().CreateSIToFP(val, assemblyType);
+		}
+		// floating point to floating point
+		if (val->getType()->isFloatingPoint() && assemblyType->isFloatingPoint()) {
+			uint32_t dstBits = assemblyType->getPrimitiveSizeInBits();
+			uint32_t srcBits = val->getType()->getPrimitiveSizeInBits();
+			// truncate
+			if (srcBits < dstBits) {
+				value = mb.getIRBuilder().CreateFPTrunc(val, assemblyType);
+			}
+			// extend
+			else if (dstBits > srcBits) {
+				value = mb.getIRBuilder().CreateFPExt(val, assemblyType);
+			}
+		}
+
+		if (value == NULL) {
+			throw(ParseError("cannot cast non-numeric type"));
+		}
 	}
 
 	/*
@@ -499,10 +549,7 @@ using namespace kensho;
 
 	void ast::Callable::emitDefinition(ast::ModuleBuilder& mb) {
 		if (mb.isDeclared(name)) {
-			std::string err = "symbol ";
-			err += name;
-			err += " is already declared";
-			throw(ParseError(err));
+			throw(ParseError("symbol " + name + " is already declared"));
 		}
 		llvm::FunctionType* funtype = llvm::FunctionType::get(
 			assemblyType, parameterTypes, false);
@@ -544,6 +591,43 @@ using namespace kensho;
 				return llvm::Type::FloatTy;
 			case T_DOUBLE:
 				return llvm::Type::DoubleTy;
+		}
+
+		return NULL;
+	}
+
+	llvm::Value* ast::implicitTypeCast(
+		const llvm::Type* src,
+		const llvm::Type* dst,
+		llvm::Value* value,
+		ast::ModuleBuilder& mb)
+	{
+		if (src->isInteger() && dst->isInteger()) {
+			uint32_t srcBits = src->getPrimitiveSizeInBits();
+			uint32_t dstBits = dst->getPrimitiveSizeInBits();
+			if (srcBits > dstBits) {
+				throw(ParseError("cannot truncate integer type"));
+			}
+			else if (srcBits < dstBits) {
+				return mb.getIRBuilder().CreateSExt(value, dst);
+			}
+			else {
+				assert(false);
+			}
+		}
+		else if (src->isFloatingPoint() && dst->isInteger()) {
+			throw(ParseError("cannot cast floating point to integer"));
+		}
+		else if (src->isFloatingPoint() && dst->isFloatingPoint()) {
+			if (src == llvm::Type::DoubleTy && dst == llvm::Type::FloatTy) {
+				throw(ParseError("cannot cast double to float"));
+			}
+			else {
+				return mb.getIRBuilder().CreateFPExt(value, dst);
+			}
+		}
+		else {
+			throw(ParseError("type mismatch in binary expression"));
 		}
 
 		return NULL;

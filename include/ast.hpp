@@ -28,6 +28,13 @@ namespace ast {
 
 	const llvm::Type* toAssemblyType(uint32_t type);
 
+	llvm::Value* implicitTypeCast(
+		const llvm::Type* src,
+		const llvm::Type* dst,
+		llvm::Value* value,
+		ModuleBuilder& mb
+	);
+
 	/*
 	 * the base class every AST node has to implement
 	 */
@@ -226,6 +233,20 @@ namespace ast {
 		}
 		std::string& getText() {
 			return text;
+		}
+		static bool hasDoubleSuffix(std::string& str) {
+			int last = str.length() - 1;
+			return str[last] == 'd' || str[last] == 'D';
+		}
+
+		static bool hasFloatSuffix(std::string& str) {
+			int last = str.length() - 1;
+			return str[last] == 'f' || str[last] == 'F';
+		}
+
+		static bool hasLongSuffix(std::string& str) {
+			int last = str.length() - 1;
+			return str[last] == 'l' || str[last] == 'L';
 		}
 	};
 

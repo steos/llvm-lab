@@ -150,6 +150,10 @@
 		std::cout << (char)c;
 	}
 
+	KENNI_API void bprintln(bool b) {
+		std::cout << (b ? "true" : "false") << "\n";
+	}
+
 	int main(int argc, char** argv)
 	{
 		try {

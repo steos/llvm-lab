@@ -315,7 +315,7 @@ expression
 	
 primary
 	:	atom
-	|	unop atom -> ^(UNOP unop atom)
+	|	PAREN_L type PAREN_R atom -> ^(CAST type atom)
 	;
 	
 atom
@@ -323,7 +323,7 @@ atom
 	|	call
 	|	ID
 	|	PAREN_L! expression PAREN_R!
-	|	PAREN_L type PAREN_R atom -> ^(CAST type atom)
+	|	unop atom -> ^(UNOP unop atom)
 	;
 	
 call
@@ -429,11 +429,11 @@ LITERAL_HEX
 	;
 	
 LITERAL_INT
-	:	DIGIT+ EXPONENT? ( 'l' | 'L' | 'f' | 'F' | 'd' | 'D' )?
+	:	DIGIT+ ( 'l' | 'L' )?
 	;
 
 LITERAL_FLOAT
-	:	DIGIT* '.' DIGIT+ EXPONENT? ( 'f' | 'F' | 'd' | 'D' )?
+	:	( DIGIT+ | DIGIT* '.' DIGIT+ ) EXPONENT? ( 'f' | 'F' | 'd' | 'D' )?
 	;
 		
 ID	

@@ -40,31 +40,35 @@
  successCount=0
  
  for s in `ls ./test/*.ks` ; do
+ 	OUT=`echo $s | sed -e 's/.ks/.out/g'`
  	testCount=`expr $testCount + 1`
  	echo -n "Running $s ... "
-  	OUT=`echo $s | sed -e 's/.ks/.out/g'`
-  	TMP=`echo $s | sed -e 's/.ks/.tmp/g'`
-  	DIFFTMP="$TMP.diff"
- 	$KENSHO $s > $TMP 2>&1
- 	# we're using --strip-trailing-cr to make the diffs
- 	# work with mingw/msys because the kensho programs
- 	# only ever output LF line endings but msys/mingw
- 	# converts them to CRLF.
- 	diff -T --strip-trailing-cr $TMP $OUT > $DIFFTMP 2>&1
-	EXIT_STATUS=$?
- 	if test $EXIT_STATUS -ne "0" ; then
- 		errCount=`expr $errCount + 1`
- 		echo "ERROR"
- 		echo "diff returned $EXIT_STATUS, expected output didn't match:"
- 		echo "-----------------------------"
- 		cat $DIFFTMP
- 		echo "-----------------------------"
+ 	if test ! -f $OUT ; then
+ 		echo "SKIPPED: missing *.out file"
  	else
- 		successCount=`expr $successCount + 1`
- 		echo "OK"
- 	fi
- 	rm $DIFFTMP
- 	rm $TMP
+	  	TMP=`echo $s | sed -e 's/.ks/.tmp/g'`
+	  	DIFFTMP="$TMP.diff"
+	 	$KENSHO $s > $TMP 2>&1
+	 	# we're using --strip-trailing-cr to make the diffs
+	 	# work with mingw/msys because the kensho programs
+	 	# only ever output LF line endings but msys/mingw
+	 	# converts them to CRLF.
+	 	diff -T --strip-trailing-cr $TMP $OUT > $DIFFTMP 2>&1
+		EXIT_STATUS=$?
+	 	if test $EXIT_STATUS -ne "0" ; then
+	 		errCount=`expr $errCount + 1`
+	 		echo "ERROR"
+	 		echo "diff returned $EXIT_STATUS, expected output didn't match:"
+	 		echo "-----------------------------"
+	 		cat $DIFFTMP
+	 		echo "-----------------------------"
+	 	else
+	 		successCount=`expr $successCount + 1`
+	 		echo "OK"
+	 	fi
+	 	rm $DIFFTMP
+	 	rm $TMP
+	 fi
  done
  
  echo ""
