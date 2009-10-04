@@ -40,16 +40,24 @@ namespace kensho {
 	 */
 	class ParseError : public Error {
 	protected:
-		const int32_t line;
+		const uint32_t line;
+		const uint32_t offset;
 	public:
 		ParseError(const std::string& message) :
-			Error(message), line(0) {};
+			Error(message), line(0), offset(0) {};
 
-		ParseError(const std::string& message, int32_t line) :
-			Error(message), line(line) {};
+		ParseError(const std::string& message, uint32_t line) :
+			Error(message), line(line), offset(0) {};
 
-		int32_t getLine() const {
+		ParseError(const std::string& message, uint32_t line, uint32_t offset) :
+			Error(message), line(line) , offset(offset) {};
+
+		uint32_t getLine() const {
 			return line;
+		}
+
+		uint32_t getOffset() const {
+			return offset;
 		}
 	};
 }

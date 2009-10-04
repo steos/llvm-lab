@@ -29,7 +29,8 @@ using namespace kensho;
 	 */
 	void ast::VariableDefinition::assemble(ast::ModuleBuilder& mb) {
 		if (mb.isDeclared(name)) {
-			throw(ParseError("symbol " + name + " is already declared"));
+			throw(ParseError("symbol " + name + " is already declared",
+				getLine(), getOffset()));
 		}
 		value = mb.getIRBuilder().CreateAlloca(assemblyType, 0, name.c_str());
 		mb.declareSymbol(this);
@@ -47,14 +48,16 @@ using namespace kensho;
 	 */
 	void ast::Variable::assemble(ast::ModuleBuilder& mb) {
 		if (!mb.isDeclared(name)) {
-			throw(ParseError("variable " + name + " is not declared"));
+			throw(ParseError("variable " + name + " is not declared",
+				getLine(), getOffset()));
 		}
 
 		Symbol* sym = mb.getSymbol(name);
 		// currently we only allow variables
 		VariableDefinition* var = dynamic_cast<VariableDefinition*>(sym);
 		if (var == NULL) {
-			throw(ParseError("symbol " + name + " is not a variable"));
+			throw(ParseError("symbol " + name + " is not a variable",
+				getLine(), getOffset()));
 		}
 
 		value = mb.getIRBuilder().CreateLoad(var->getValue(), name.c_str());
@@ -149,19 +152,27 @@ using namespace kensho;
 		if (token == OP_ASSIGN) {
 			Variable* var = dynamic_cast<Variable*>(left);
 			if (var == NULL) {
-				throw(ParseError("can only assign to variables"));
+				throw(ParseError("can only assign to variables",
+					getLine(), getOffset()));
 			}
 			if (!mb.isDeclared(var->getName())) {
-				throw(ParseError("variable " + var->getName() + " is not declared"));
+				throw(ParseError("variable " + var->getName() + " is not declared",
+					getLine(), getOffset()));
 			}
 			VariableDefinition* vardef = dynamic_cast<VariableDefinition*>(
 				mb.getSymbol(var->getName()));
 			assert(vardef != NULL);
 			if (vardef->getAssemblyType() != typeRight) {
-				llvm::Value* castVal = implicitTypeCast(
-					typeRight, vardef->getAssemblyType(), valRight, mb);
-				assert(castVal != NULL);
-				valRight = castVal;
+				try {
+					llvm::Value* castVal = implicitTypeCast(
+						typeRight, vardef->getAssemblyType(), valRight, mb);
+
+					assert(castVal != NULL);
+					valRight = castVal;
+				}
+				catch (ParseError& err) {
+					throw(ParseError(err.getMessage(), getLine(), getOffset()));
+				}
 			}
 			value = mb.getIRBuilder().CreateStore(valRight, vardef->getValue());
 			// we're done for variable assignments
@@ -172,17 +183,22 @@ using namespace kensho;
 		typeLeft = valLeft->getType();
 
 		if (typeLeft != typeRight) {
-			llvm::Value* castval = NULL;
-			if (typeLeft < typeRight) {
-				castval = implicitTypeCast(
-					typeLeft, typeRight, valLeft, mb);
+			try {
+				llvm::Value* castval = NULL;
+				if (typeLeft < typeRight) {
+					castval = implicitTypeCast(
+						typeLeft, typeRight, valLeft, mb);
+				}
+				else if (typeLeft > typeRight) {
+					castval = implicitTypeCast(
+						typeRight, typeLeft, valRight, mb);
+				}
+				assert(castval != NULL);
+				valRight = castval;
 			}
-			else if (typeLeft > typeRight) {
-				castval = implicitTypeCast(
-					typeRight, typeLeft, valRight, mb);
+			catch (ParseError& err) {
+				throw(ParseError(err.getMessage(), getLine(), getOffset()));
 			}
-			assert(castval != NULL);
-			valRight = castval;
 		}
 
 		value = mb.createBinaryOperator(token, valLeft, valRight);
@@ -246,7 +262,8 @@ using namespace kensho;
 		for (uint32_t i = 0; i < numStats; ++i) {
 			body.at(i)->emit(mb);
 			if (body.at(i)->isReturnStatement() && i < body.size() - 1) {
-				throw(ParseError("unreachable code after return statement"));
+				throw(ParseError("unreachable code after return statement",
+					getLine(), getOffset()));
 			}
 		}
 
@@ -260,7 +277,8 @@ using namespace kensho;
 				returnStat->emit(mb);
 			}
 			else {
-				throw(ParseError("missing return statement in non-void function " + name));
+				throw(ParseError("missing return statement in non-void function " + name,
+					getLine(), getOffset()));
 			}
 		}
 		else {
@@ -268,10 +286,12 @@ using namespace kensho;
 			// verify type match
 			Node* ex = ret->getExpression();
 			if (ex != NULL && type == T_VOID) {
-				throw(ParseError("void function " + name + " cannot return non-void type"));
+				throw(ParseError("void function " + name + " cannot return non-void type",
+					getLine(), getOffset()));
 			}
 			else if (ex != NULL && ex->getValue()->getType() != assemblyType) {
-				throw(ParseError("type mismatch in return statement in function " + name));
+				throw(ParseError("type mismatch in return statement in function " + name,
+					getLine(), getOffset()));
 			}
 		}
 	}
@@ -281,17 +301,20 @@ using namespace kensho;
 	 */
 	void ast::Call::assemble(ast::ModuleBuilder& mb) {
 		if (!mb.isDeclared(name)) {
-			throw(ParseError("function " + name + " is not declared"));
+			throw(ParseError("function " + name + " is not declared",
+				getLine(), getOffset()));
 		}
 
 		Callable* fun = dynamic_cast<Callable*>(mb.getSymbol(name));
 		if (fun == NULL) {
-			throw(ParseError("symbol " + name + " is not a function and cannot be called"));
+			throw(ParseError("symbol " + name + " is not a function and cannot be called",
+				getLine(), getOffset()));
 		}
 
 		uint32_t numParams = fun->countParameters();
 		if (numParams != arguments.size()) {
-			throw(ParseError("argument count mismatch in call to function " + name));
+			throw(ParseError("argument count mismatch in call to function " + name,
+				getLine(), getOffset()));
 		}
 
 		std::vector<const llvm::Type*> expected = fun->getParameterTypes();
@@ -302,7 +325,8 @@ using namespace kensho;
 			llvm::Value* val = arg->emit(mb);
 			if (expected.at(i) != val->getType()) {
 				throw(ParseError("type mismatch in call to function " + name
-					+ " for argument #" + boost::lexical_cast<std::string>(i)));
+					+ " for argument #" + boost::lexical_cast<std::string>(i),
+					getLine(), getOffset()));
 			}
 			values.push_back(val);
 		}
@@ -327,7 +351,8 @@ using namespace kensho;
 			uint32_t dstBits = assemblyType->getPrimitiveSizeInBits();
 			// special case for boolean => disallow
 			if ((valBits == 1 && dstBits > 1) || (dstBits == 1 && valBits > 1)) {
-				throw(ParseError("cannot cast numeric value to boolean"));
+				throw(ParseError("cannot cast numeric value to boolean",
+					getLine(), getOffset()));
 			}
 			// truncation
 			if (valBits > dstBits) {
@@ -346,7 +371,8 @@ using namespace kensho;
 		if (val->getType()->isFloatingPoint() && assemblyType->isInteger()) {
 			// disallow bool
 			if (assemblyType->getPrimitiveSizeInBits() == 1) {
-				throw(ParseError("cannot cast floating point to boolean"));
+				throw(ParseError("cannot cast floating point to boolean",
+					getLine(), getOffset()));
 			}
 			value = mb.getIRBuilder().CreateFPToSI(val, assemblyType);
 		}
@@ -354,7 +380,8 @@ using namespace kensho;
 		if (val->getType()->isInteger() && assemblyType->isFloatingPoint()) {
 			// disallow boolean
 			if (val->getType()->getPrimitiveSizeInBits() == 1) {
-				throw(ParseError("cannot cast boolean to floating point"));
+				throw(ParseError("cannot cast boolean to floating point",
+					getLine(), getOffset()));
 			}
 			value = mb.getIRBuilder().CreateSIToFP(val, assemblyType);
 		}
@@ -373,7 +400,8 @@ using namespace kensho;
 		}
 
 		if (value == NULL) {
-			throw(ParseError("cannot cast non-numeric type"));
+			throw(ParseError("cannot cast non-numeric type",
+				getLine(), getOffset()));
 		}
 	}
 
@@ -450,7 +478,8 @@ using namespace kensho;
 		// verify that we have a boolean expression
 		llvm::Value* exval = expression->emit(mb);
 		if (exval->getType() != llvm::Type::Int1Ty) {
-			throw(ParseError("non-boolean if-expression"));
+			throw(ParseError("non-boolean if-expression",
+				getLine(), getOffset()));
 		}
 
 		// emit conditional branch
@@ -461,7 +490,8 @@ using namespace kensho;
 		for (uint32_t i = 0; i < trueBody.size(); ++i) {
 			trueBody.at(i)->emit(mb);
 			if (trueBody.at(i)->isReturnStatement() && i < trueBody.size() - 1) {
-				throw(ParseError("unreachable code after return statement"));
+				throw(ParseError("unreachable code after return statement",
+					getLine(), getOffset()));
 			}
 		}
 		// we must only emit a branch to the next block
@@ -480,7 +510,8 @@ using namespace kensho;
 				mb.getIRBuilder().SetInsertPoint(block);
 				llvm::Value* val = cond->expression->emit(mb);
 				if (val->getType() != llvm::Type::Int1Ty) {
-					throw(ParseError("non-boolean else-if-expression"));
+					throw(ParseError("non-boolean else-if-expression",
+						getLine(), getOffset()));
 				}
 				// if this is the last one we branch to
 				// the final merge block, otherwise we branch
@@ -502,8 +533,10 @@ using namespace kensho;
 				mb.getIRBuilder().SetInsertPoint(branchBlock);
 				for (uint32_t i = 0; i < cond->trueBody.size(); ++i) {
 					cond->trueBody.at(i)->emit(mb);
-					if (cond->trueBody.at(i)->isReturnStatement() && i < cond->trueBody.size() - 1) {
-						throw(ParseError("unreachable code after return statement"));
+					if (cond->trueBody.at(i)->isReturnStatement()
+						&& i < cond->trueBody.size() - 1) {
+						throw(ParseError("unreachable code after return statement",
+							getLine(), getOffset()));
 					}
 				}
 				// we must only emit a branch to the next block
@@ -522,7 +555,8 @@ using namespace kensho;
 			for (uint32_t i = 0; i < falseBody.size(); ++i) {
 				falseBody.at(i)->emit(mb);
 				if (falseBody.at(i)->isReturnStatement() && i < falseBody.size() - 1) {
-					throw(ParseError("unreachable code after return statement"));
+					throw(ParseError("unreachable code after return statement",
+						getLine(), getOffset()));
 				}
 			}
 			// we must only emit a branch to the next block
@@ -549,7 +583,8 @@ using namespace kensho;
 
 	void ast::Callable::emitDefinition(ast::ModuleBuilder& mb) {
 		if (mb.isDeclared(name)) {
-			throw(ParseError("symbol " + name + " is already declared"));
+			throw(ParseError("symbol " + name + " is already declared",
+				getLine(), getOffset()));
 		}
 		llvm::FunctionType* funtype = llvm::FunctionType::get(
 			assemblyType, parameterTypes, false);
@@ -609,6 +644,9 @@ using namespace kensho;
 				throw(ParseError("cannot truncate integer type"));
 			}
 			else if (srcBits < dstBits) {
+				if (srcBits == 1) {
+					throw(ParseError("cannot cast boolean to numeric type"));
+				}
 				return mb.getIRBuilder().CreateSExt(value, dst);
 			}
 			else {

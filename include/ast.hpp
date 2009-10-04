@@ -46,7 +46,7 @@ namespace ast {
 	protected:
 		virtual void assemble(ModuleBuilder&) = 0;
 	public:
-		Node() : value(NULL) {};
+		Node() : value(NULL), line(0), offset(0) {};
 		llvm::Value* emit(ModuleBuilder& mb);
 		llvm::Value* getValue();
 		void setSourcePosition(int32_t, int32_t);

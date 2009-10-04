@@ -47,6 +47,7 @@ kenniFunction returns [kensho::ast::Callable* node]
 			n=ID {
 				std::string name((char*)$n->getText($n)->chars);
 				$node = new kensho::ast::Callable(name, $t.tree->getType($t.tree));
+				$node->setSourcePosition($n.line, $n.pos);
 			}
 			( type {
 				$node->addParameter($type.tree->getType($type.tree));
@@ -72,6 +73,7 @@ signature returns [kensho::ast::Function* node]
 			n=ID {
 				std::string name((char*)$n->getText($n)->chars);
 				$node = new kensho::ast::Function(name, $t.tree->getType($t.tree));
+				$node->setSourcePosition($n.line, $n.pos);
 			} 
 			params[$node, paramCount++]*
 		) 
@@ -109,6 +111,8 @@ returnStatement returns [kensho::ast::Return* node]
 	:	^(K_RETURN 
 			( ex=expression { 
 				$node = new kensho::ast::Return($ex.node); 
+				pANTLR3_COMMON_TOKEN tok = $ex.tree->getToken($ex.tree);
+				$node->setSourcePosition(tok->getLine(tok), tok->getStartIndex(tok));
 			})?
 		)
 	;	
@@ -117,6 +121,8 @@ ifStat returns [kensho::ast::Conditional* node]
 	:	^(K_IF 
 			ex=expression {
 				$node = new kensho::ast::Conditional($ex.node);
+				pANTLR3_COMMON_TOKEN tok = $ex.tree->getToken($ex.tree);
+				$node->setSourcePosition(tok->getLine(tok), tok->getStartIndex(tok));
 			}
 			( statement {
 				$node->addTrueBodyNode($statement.node);
@@ -132,6 +138,8 @@ elseIfStat returns [kensho::ast::Conditional* node]
 	:	^(ELSEIF 
 			ex=expression {
 				$node = new kensho::ast::Conditional($ex.node);
+				pANTLR3_COMMON_TOKEN tok = $ex.tree->getToken($ex.tree);
+				$node->setSourcePosition(tok->getLine(tok), tok->getStartIndex(tok));
 			}
 			( statement {
 				$node->addTrueBodyNode($statement.node);
@@ -148,9 +156,11 @@ elseStat[kensho::ast::Conditional* node]
 	;
 
 whileStat returns [kensho::ast::While* node]
-	:	^(K_WHILE 
+	:	^(t=K_WHILE 
 			ex=expression {
 				$node = new kensho::ast::While($ex.node);
+				pANTLR3_COMMON_TOKEN tok = $ex.tree->getToken($ex.tree);
+				$node->setSourcePosition(tok->getLine(tok), tok->getStartIndex(tok));
 			} 
 			( s=statement {
 				$node->addBodyNode($s.node);
@@ -162,6 +172,7 @@ variable returns [kensho::ast::VariableDefinition* node]
 @after {
 	std::string name((char*)$n->getText($n)->chars);
 	$node = new kensho::ast::VariableDefinition(name, $t.tree->getType($t.tree));
+	$node->setSourcePosition($n.line, $n.pos);
 }
 	:	^(VARDEF t=type n=ID) 
 	;
@@ -182,6 +193,7 @@ expression returns [kensho::ast::Node* node]
 			$node = new kensho::ast::Variable(
 				std::string((char*)$name->getText($name)->chars)
 			); 
+			$node->setSourcePosition($name.line, $name.pos);
 		}
 	|	^(LIT lit=literal) {
 			$node = $lit.node;
@@ -192,16 +204,19 @@ expression returns [kensho::ast::Node* node]
 	|	^(UNOP unop unex=expression) {
 			pANTLR3_COMMON_TOKEN tok = $unop.tree->getToken($unop.tree);
 			$node = new kensho::ast::UnaryExpression(tok->getType(tok), $unex.node); 
+			$node->setSourcePosition(tok->getLine(tok), tok->getStartIndex(tok));
 		}
 	|	^(CAST type castex=expression) {
 			pANTLR3_COMMON_TOKEN tok = $type.tree->getToken($type.tree);
 			$node = new kensho::ast::Cast(tok->getType(tok), $castex.node);
+			$node->setSourcePosition(tok->getLine(tok), tok->getStartIndex(tok));
 		}
 	|	^(BINOP binop left=expression right=expression) {
 			pANTLR3_COMMON_TOKEN tok = $binop.tree->getToken($binop.tree);
 			$node = new kensho::ast::BinaryExpression(
 				tok->getType(tok), $left.node, $right.node
 			);
+			$node->setSourcePosition(tok->getLine(tok), tok->getStartIndex(tok));
 		}
 	;	
 	
@@ -210,6 +225,7 @@ call returns [kensho::ast::Call* node]
 			name=ID {
 				std::string nameStr((char*)$name->getText($name)->chars);
 				$node = new kensho::ast::Call(nameStr);   
+				$node->setSourcePosition($name.line, $name.pos);
 			} 
 			( ex=expression {
 				$node->addArgument($ex.node);
@@ -225,6 +241,7 @@ literal returns [kensho::ast::Literal* node]
 		$literal.tree->getType($literal.tree),
 		std::string((char*)token->getText(token)->chars)
 	);
+	$node->setSourcePosition(token->getLine(token), token->getStartIndex(token));
 }
 	:	LITERAL_INT
 	|	LITERAL_OCT

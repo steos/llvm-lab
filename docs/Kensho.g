@@ -391,6 +391,11 @@ DIGIT
 	;
 	
 fragment
+POSDIGIT
+	:	'1'..'9'
+	;
+	
+fragment
 HEXDIGIT
 	:	DIGIT | 'a'..'f' | 'A'..'F'
 	;
@@ -429,11 +434,12 @@ LITERAL_HEX
 	;
 	
 LITERAL_INT
-	:	DIGIT+ ( 'l' | 'L' )?
+	:	( DIGIT | POSDIGIT DIGIT+ ) ( 'l' | 'L' )?
 	;
 
 LITERAL_FLOAT
-	:	( DIGIT+ | DIGIT* '.' DIGIT+ ) EXPONENT? ( 'f' | 'F' | 'd' | 'D' )?
+	:	( POSDIGIT DIGIT* | ( POSDIGIT DIGIT+ | DIGIT )? '.' DIGIT+ ) 
+		EXPONENT? ( 'f' | 'F' | 'd' | 'D' )?
 	;
 		
 ID	

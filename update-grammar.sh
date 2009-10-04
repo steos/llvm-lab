@@ -62,15 +62,15 @@
  	exit 1
  else
  	# verify that we have the correct antlr version
- 	head -n 1 "$GRAMMAR_OUT/antlr.version" | egrep '3\.1\.[0-9]' > /dev/null
+ 	head -n 1 "$GRAMMAR_OUT/antlr.version" | egrep '3\.2' > /dev/null
  	if test $? -ne 0 ; then
- 		echo "ANTLR was not detected as being version 3.1.x"
- 		echo "ANTLR 3.1.x is required to regenerate the parser"
+ 		echo "ANTLR was not detected as being version 3.2"
+ 		echo "ANTLR 3.2 is required to regenerate the parser"
  		rm -rf "$GRAMMAR_OUT"
  		exit 1
  	else
  		# (re)generate parser
- 		echo -n "regenerating grammar with ANTLR 3.1.x ... "
+ 		echo -n "regenerating grammar with ANTLR 3.2 ... "
  		antlr -o $GRAMMAR_OUT "$GRAMMAR_SRC/*.g" > "$GRAMMAR_OUT/antlr.log" 2>&1
  		if test $? -ne 0; then
  			echo "ERROR"

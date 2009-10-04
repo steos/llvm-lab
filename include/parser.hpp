@@ -92,6 +92,9 @@ namespace kensho {
 		{
 			ast = parser->program(parser);
 
+			if (lexer->pLexer->rec->state->errorCount > 0) {
+				throw(ParseError("The lexer returned with errors"));
+			}
 			if (parser->pParser->rec->state->errorCount > 0) {
 				throw(ParseError("The parser returned with errors"));
 			}
