@@ -1,0 +1,87 @@
+/* This file is part of Kensho.
+ * Kensho is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Kensho is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Kensho.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include <kensho/ast/Function.hpp>
+#include <kensho/ast/ModuleBuilder.hpp>
+#include <kensho/error.hpp>
+
+#include <llvm/Value.h>
+#include <llvm/Function.h>
+
+#include <antlr.hpp>
+
+using namespace kensho;
+
+	void ast::Function::assemble(ast::ModuleBuilder& mb) {
+		llvm::Function* fun = llvm::cast<llvm::Function>(value);
+		assert(fun != NULL);
+
+		// set parameter names
+		llvm::Function::arg_iterator arg = NULL;
+		int32_t i = 0;
+		for (arg = fun->arg_begin(); arg != fun->arg_end(); ++arg) {
+			std::string str = parameterNames.at(i++);
+			arg->setName(str.c_str());
+			parameterValues.push_back(arg);
+		}
+
+		// emit body
+		llvm::BasicBlock* entryBlock = llvm::BasicBlock::Create("entry", fun);
+		mb.getIRBuilder().SetInsertPoint(entryBlock);
+
+		uint32_t numStats = body.size();
+		for (uint32_t i = 0; i < numStats; ++i) {
+			body.at(i)->emit(mb);
+			if (body.at(i)->isReturnStatement() && i < body.size() - 1) {
+				throw(ParseError("unreachable code after return statement",
+					getLine(), getOffset()));
+			}
+		}
+
+		// if we have no return statement and the function
+		// returns void we synthesize a return statement
+		// otherwise bail out with error
+		if (numStats > 0
+			&& body.at(numStats - 1)->isReturnStatement() == false) {
+			if (type == T_VOID) {
+				Return* returnStat = new Return(NULL);
+				returnStat->emit(mb);
+			}
+			else {
+				throw(ParseError("missing return statement in non-void function " + name,
+					getLine(), getOffset()));
+			}
+		}
+		else {
+			Return* ret = dynamic_cast<Return*>(body.at(numStats - 1));
+			// verify type match
+			Node* ex = ret->getExpression();
+			if (ex != NULL && type == T_VOID) {
+				throw(ParseError("void function " + name + " cannot return non-void type",
+					getLine(), getOffset()));
+			}
+			else if (ex != NULL && ex->getValue()->getType() != assemblyType) {
+				throw(ParseError("type mismatch in return statement in function " + name,
+					getLine(), getOffset()));
+			}
+		}
+	}
+
+	void ast::ParameterDefinition::assemble(ast::ModuleBuilder& mb) {
+		assert (mb.isDeclared(name) == false && "parameter already declared");
+		VariableDefinition* vardef = new VariableDefinition(name, type);
+		llvm::Value* ptr = vardef->emit(mb);
+		value = mb.getIRBuilder().CreateStore(fun->getParameterValue(index), ptr);
+	}

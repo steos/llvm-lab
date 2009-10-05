@@ -24,13 +24,30 @@ options
 }
 
 @preincludes {
-	#include <ast.hpp>
+	#include <kensho/ast/Call.hpp>
+	#include <kensho/ast/Variable.hpp>
+	#include <kensho/ast/VariableDefinition.hpp>
+	#include <kensho/ast/Function.hpp>
+	#include <kensho/ast/Struct.hpp>
+	#include <kensho/ast/BinaryExpression.hpp>
+	#include <kensho/ast/UnaryExpression.hpp>
+	#include <kensho/ast/Conditional.hpp>
+	#include <kensho/ast/While.hpp>
+	#include <kensho/ast/Return.hpp>
+	#include <kensho/ast/Cast.hpp>
 	#include <vector>
 }
 
-program returns [std::vector<kensho::ast::Callable*>* functions]
+@includes {
+	#include <kensho/ast/Literal.hpp>
+}
+
+program returns [std::vector<kensho::ast::Callable*>* functions, 
+	std::vector<kensho::ast::Struct*>* structs]
+	
 @init {
 	$functions = new std::vector<kensho::ast::Callable*>();
+	$structs = new std::vector<kensho::ast::Struct*>();
 }
 	:	( 	function {
 			$functions->push_back($function.node);
@@ -38,6 +55,9 @@ program returns [std::vector<kensho::ast::Callable*>* functions]
 		| 	kenniFunction { 
 				$functions->push_back($kenniFunction.node); 
 			} 
+		|	structDecl {
+				$structs->push_back($structDecl.node);			
+			}
 		)*
 	;
 	
@@ -53,6 +73,44 @@ kenniFunction returns [kensho::ast::Callable* node]
 				$node->addParameter($type.tree->getType($type.tree));
 			})*
 		) 
+	;
+	
+structDecl returns [kensho::ast::Struct* node]
+	:	^(K_STRUCT 
+			n=ID {
+				std::string name((char*)$n->getText($n)->chars);
+				$node = new kensho::ast::Struct(name);
+				$node->setSourcePosition($n.line, $n.pos);
+			} 
+			( structBodyDecl[$node] )*
+		)
+	;
+	
+structBodyDecl[kensho::ast::Struct* parent]
+	:	variable {
+		$parent->addVariableDefinition($variable.node);
+	}
+	|	structFunction[$parent]
+	;
+	
+structFunction[kensho::ast::Struct* parent]
+@init {
+	bool staticDef = false;
+}
+@after {
+	$parent->addFunction($sig.node, staticDef);
+}
+	:	^(STRUCTFUN 
+			( structFunMods { if ($structFunMods.staticDef) staticDef = true; } )* 
+			sig=signature 
+			( statement {
+				$sig.node->addBodyNode($statement.node);
+			})*
+		) 
+	;
+	
+structFunMods returns [bool staticDef]
+	:	^( MODS K_STATIC { $staticDef = true; } )
 	;
 	
 function returns [kensho::ast::Function* node]

@@ -13,8 +13,9 @@
  * along with Kensho.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <ModuleBuilder.hpp>
-#include <ast.hpp>
+#include <kensho/ast/ModuleBuilder.hpp>
+#include <kensho/ast/VariableDefinition.hpp>
+#include <kensho/ast/Callable.hpp>
 
 #include <llvm/ModuleProvider.h>
 #include <llvm/Analysis/Verifier.h>
@@ -26,16 +27,33 @@
 
 using namespace kensho;
 
-	void ast::ModuleBuilder::declareSymbol(ast::Symbol* symbol) {
-		symbols[symbol->getName()] = symbol;
+	void ast::ModuleBuilder::declareSymbol(ast::VariableDefinition* symbol) {
+		symScope.addSymbol(symbol->getName(), symbol);
 	}
 
-	void ast::ModuleBuilder::build(bool mem2reg, bool optimize) {
-		initEngine(mem2reg, optimize);
+	void ast::ModuleBuilder::declareFunction(Callable* fun) {
+		funScope.addSymbol(fun->getName(), fun);
+	}
+
+	void ast::ModuleBuilder::emitDefinitions() {
 		int numFuns = functions->size();
+		int numStructs = structs->size();
+		for (int i = 0; i < numStructs; ++i) {
+			Struct* st = structs->at(i);
+			st->emitDefinition(*this);
+		}
 		for (int i = 0; i < numFuns; ++i) {
 			Callable* cb = functions->at(i);
 			cb->emitDefinition(*this);
+		}
+	}
+
+	void ast::ModuleBuilder::emitImplementations() {
+		int numFuns = functions->size();
+		int numStructs = structs->size();
+		for (int i = 0; i < numStructs; ++i) {
+			Struct* st = structs->at(i);
+			st->emit(*this);
 		}
 		for (int i = 0; i < numFuns; ++i) {
 			Callable* cb = functions->at(i);
@@ -47,6 +65,15 @@ using namespace kensho;
 				fpm->run(*llvmFun);
 			}
 		}
+	}
+
+	void ast::ModuleBuilder::build(bool mem2reg, bool optimize) {
+		initEngine(mem2reg, optimize);
+		// pass 1: emit function definitions and type declarations
+		// and put all that stuff into the symbol table
+		emitDefinitions();
+		// pass 2: emit function implementations
+		emitImplementations();
 	}
 
 	void ast::ModuleBuilder::initEngine(bool mem2reg, bool optimize) {

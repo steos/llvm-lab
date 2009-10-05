@@ -16,6 +16,8 @@
 #ifndef ANTLR_HPP_
 #define ANTLR_HPP_
 
+#include <string>
+
 // Must include TreeParser first because
 // it includes ast.hpp and this in turn includes
 // llvm headers. Otherwise antlr3.h gets included

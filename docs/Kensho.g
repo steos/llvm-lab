@@ -73,6 +73,10 @@ tokens
 	LITERAL_FALSE	= 'false';
 	K_NATIVE		= 'native';
 	K_RETURN		= 'return';
+	K_NEW			= 'new';
+	K_DELETE		= 'delete';
+	K_STRUCT		= 'struct';
+	K_STATIC		= 'static';
 	
 	// misc
 	BRACE_L			= '{';
@@ -94,9 +98,12 @@ tokens
 	CAST;
 	KENNIDEF;
 	ELSEIF;
+	STRUCTFUN;
+	MODS;
 }
 
 @parser::preincludes {
+	#include <kensho/error.hpp>
 	char* antlrTokenName(int type);
 }
 
@@ -105,7 +112,6 @@ tokens
 	#include <vector>
 	#include <cassert>
 	#include <iostream>
-	#include <error.hpp>
 	
 	extern "C" void kenshoAntlrErrorReporter(pANTLR3_BASE_RECOGNIZER rec, pANTLR3_UINT8* tokens);
 }
@@ -229,7 +235,7 @@ tokens
 }
 	
 program
-	:	( function | kenniFunction )*
+	:	( function | kenniFunction | structDecl )*
 	;
 	
 kenniFunction
@@ -254,6 +260,25 @@ functionType
 params
 	:	type t=ID ( COMMA type ID )*
 		-> ^(ARGDEF[$t] type ID)+
+	;
+	
+structDecl
+	:	K_STRUCT ID BRACE_L structBodyDecl* BRACE_R
+		-> ^(K_STRUCT ID structBodyDecl*)
+	;
+	
+structBodyDecl
+	:	variable SEMICOLON!
+	|	structFunction
+	;
+	
+structFunction
+	:	structFunMods? signature t=BRACE_L statement* BRACE_R
+	->	^(STRUCTFUN[$t] ^(MODS structFunMods)? signature statement*) 
+	;
+	
+structFunMods
+	:	K_STATIC
 	;
 
 statement

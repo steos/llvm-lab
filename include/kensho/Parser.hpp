@@ -13,11 +13,11 @@
  * along with Kensho.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef PARSER_HPP_
-#define PARSER_HPP_
+#ifndef KENSHO_PARSER_HPP_
+#define KENSHO_PARSER_HPP_
 
 #include <string>
-#include <error.hpp>
+#include <kensho/error.hpp>
 
 // always include antlr last!
 #include <antlr.hpp>
@@ -163,4 +163,4 @@ namespace kensho {
 
 } // end ns
 
-#endif /* PARSER_HPP_ */
+#endif /* KENSHO_PARSER_HPP_ */

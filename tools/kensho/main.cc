@@ -17,10 +17,10 @@
 #include <vector>
 #include <string>
 
-#include <ModuleBuilder.hpp>
+#include <kensho/ast/ModuleBuilder.hpp>
 
 // always include antlr last!
-#include <parser.hpp>
+#include <kensho/Parser.hpp>
 
 #ifdef WIN32
 #define KENNI_API extern "C" __declspec(dllexport) __cdecl
@@ -100,7 +100,7 @@
 #endif
 
 	ExitCode runJIT(ast::ModuleBuilder& mb) {
-		ast::Function* astFun = dynamic_cast<ast::Function*>(mb.getSymbol("main"));
+		ast::Function* astFun = dynamic_cast<ast::Function*>(mb.getFunction("main"));
 		if (!astFun) {
 			std::cerr << "no entry point main defined\n";
 			return EXIT_PARSE_ERROR;
@@ -181,7 +181,7 @@
 
 			parser.createTreeParser();
 			antlr::treeast_t treeAst = parser.parseTree();
-			ast::ModuleBuilder mb("default", treeAst.functions);
+			ast::ModuleBuilder mb("default", treeAst.functions, treeAst.structs);
 			mb.build(op.mem2reg, op.optimize);
 
 			if (op.mode == MODE_DUMP_IR) {
