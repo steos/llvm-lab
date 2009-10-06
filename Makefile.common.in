@@ -23,7 +23,7 @@ PROJ_INSTALL_ROOT := @prefix@
 # Include LLVM's Master Makefile.
 include $(LLVM_OBJ_ROOT)/Makefile.common
 
-G_SRC = $(PROJ_SRC_ROOT)/docs/*.g
+G_SRC = $(PROJ_SRC_ROOT)/docs
 G_OUT = $(PROJ_SRC_ROOT)/docs/temp
 G_DST_H = $(PROJ_SRC_ROOT)/include/
 G_DST_C = $(PROJ_SRC_ROOT)/lib/core/
