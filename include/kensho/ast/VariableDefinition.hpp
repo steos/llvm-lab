@@ -29,26 +29,32 @@ namespace ast {
 	private:
 		std::string name;
 		uint32_t type;
+		std::string text;
 		const llvm::Type* assemblyType;
 	protected:
 		virtual void assemble(ModuleBuilder& mb);
 	public:
+		VariableDefinition(std::string name, uint32_t type, std::string text) :
+			name(name), type(type), text(text), assemblyType(NULL) {};
 		VariableDefinition(std::string name, uint32_t type) :
-			name(name), type(type) {
-			assemblyType = toAssemblyType(type);
-		};
+			name(name), type(type), assemblyType(NULL) {};
+		VariableDefinition(std::string name, const llvm::Type* ty) :
+			name(name), type(0), assemblyType(ty) {};
 
 		std::string getName();
 		void setName(std::string name);
 		uint32_t getType();
 		const llvm::Type* getAssemblyType();
+		const llvm::Type* toAssemblyType(ModuleBuilder&);
+		std::string getText();
 	};
-	inline void VariableDefinition::setName(std::string name) {
-		this->name = name;
+
+	inline std::string VariableDefinition::getText() {
+		return text;
 	}
 
-	inline uint32_t VariableDefinition::getType() {
-		return type;
+	inline void VariableDefinition::setName(std::string name) {
+		this->name = name;
 	}
 
 	inline std::string VariableDefinition::getName() {
@@ -57,6 +63,9 @@ namespace ast {
 
 	inline const llvm::Type* VariableDefinition::getAssemblyType() {
 		return assemblyType;
+	}
+	inline uint32_t VariableDefinition::getType() {
+		return type;
 	}
 
 }} // end ns

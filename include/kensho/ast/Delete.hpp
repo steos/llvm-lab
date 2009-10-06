@@ -13,37 +13,27 @@
  * along with Kensho.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef KENSHO_AST_CALL_HPP_
-#define KENSHO_AST_CALL_HPP_
+#ifndef KENSHO_AST_DELETE_HPP_
+#define KENSHO_AST_DELETE_HPP_
 
 #include <kensho/ast/Node.hpp>
-#include <string>
-#include <vector>
 
 namespace kensho {
 namespace ast {
 
 	/**
-	 * function call
+	 * delete statement
 	 */
-	class Call : public Node {
-	protected:
+	class Delete : public Node {
+	private:
 		std::string name;
-		std::vector<Node*> arguments;
+	protected:
 		virtual void assemble(ModuleBuilder& mb);
 	public:
-		Call(std::string name) : name(name) {};
-		void addArgument(Node* node) {
-			arguments.push_back(node);
-		}
-		int countArguments() {
-			return arguments.size();
-		}
+		Delete(std::string name) : name(name) {};
 	};
-
-
 
 }} // end ns
 
 
-#endif /* KENSHO_AST_CALL_HPP_ */
+#endif /* KENSHO_AST_DELETE_HPP_ */

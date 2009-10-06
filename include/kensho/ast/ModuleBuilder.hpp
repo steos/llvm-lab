@@ -48,6 +48,7 @@ namespace ast {
 		std::vector<ast::Struct*>* structs;
 		Scope<VariableDefinition*> symScope;
 		Scope<Callable*> funScope;
+		Scope<Struct*> typeScope;
 		llvm::FunctionPassManager* fpm;
 		llvm::ExecutionEngine* engine;
 		void initEngine(bool mem2reg, bool optimize);
@@ -63,6 +64,8 @@ namespace ast {
 
 		void declareSymbol(VariableDefinition* symbol);
 
+		void clearSymbolScope();
+
 		void declareFunction(Callable* fun);
 
 		bool isFunctionDeclared(std::string name);
@@ -70,6 +73,12 @@ namespace ast {
 		Callable* getFunction(std::string name);
 
 		bool isDeclared(std::string name);
+
+		void declareUserType(Struct*);
+
+		bool isUserTypeDeclared(std::string name);
+
+		Struct* getUserType(std::string name);
 
 		VariableDefinition* getSymbol(std::string name);
 
@@ -86,6 +95,18 @@ namespace ast {
 
 		~ModuleBuilder() {};
 	};
+
+	inline void ModuleBuilder::clearSymbolScope() {
+		symScope.popAllAndClear();
+	}
+
+	inline bool ModuleBuilder::isUserTypeDeclared(std::string name) {
+		return typeScope.hasSymbol(name);
+	}
+
+	inline Struct* ModuleBuilder::getUserType(std::string name) {
+		return typeScope.getSymbol(name);
+	}
 
 	inline bool ModuleBuilder::isFunctionDeclared(std::string name) {
 		return funScope.hasSymbol(name);

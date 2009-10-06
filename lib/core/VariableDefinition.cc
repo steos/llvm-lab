@@ -14,16 +14,43 @@
  */
 
 #include <kensho/ast/VariableDefinition.hpp>
+#include <kensho/ast/Struct.hpp>
 #include <kensho/ast/ModuleBuilder.hpp>
 #include <kensho/error.hpp>
+#include <kensho/ast/util.hpp>
+#include <llvm/TypeSymbolTable.h>
+
+#include <antlr.hpp>
 
 using namespace kensho;
+
+	const llvm::Type* ast::VariableDefinition::toAssemblyType(ast::ModuleBuilder& mb) {
+		if (assemblyType != NULL) {
+			return assemblyType;
+		}
+		if (type == ID) {
+			Struct* st = mb.getUserType(text);
+			if (st != NULL) {
+				assemblyType = st->getAssemblyType();
+			}
+		}
+		else {
+			assemblyType = ast::toAssemblyType(type);
+		}
+
+		if (assemblyType == NULL) {
+			throw(ParseError("declaration of variable " + name
+				+ " with undeclared type ", getLine(), getOffset()));
+		}
+		return assemblyType;
+	}
 
 	void ast::VariableDefinition::assemble(ast::ModuleBuilder& mb) {
 		if (mb.isDeclared(name)) {
 			throw(ParseError("symbol " + name + " is already declared",
 				getLine(), getOffset()));
 		}
+		toAssemblyType(mb);
 		value = mb.getIRBuilder().CreateAlloca(assemblyType, 0, name.c_str());
 		mb.declareSymbol(this);
 	}

@@ -31,15 +31,15 @@ namespace ast {
 	protected:
 		std::vector<std::string> parameterNames;
 		std::vector<Node*> body;
-		std::vector<llvm::Value*> parameterValues;
 		virtual void assemble(ModuleBuilder& mb);
 	public:
 		Function(std::string name, uint32_t type) :
 			Callable(name, type) {};
+		Function(std::string name, uint32_t type, std::vector<Node*> body) :
+			Callable(name, type), body(body) {};
 		virtual void addParameter(std::string name, uint32_t type);
 		virtual void prependParameter(std::string name, const llvm::Type* type);
 		void addBodyNode(Node*);
-		llvm::Value* getParameterValue(uint32_t offset);
 		const llvm::Type* getParameterType(uint32_t offset);
 	};
 
@@ -61,25 +61,6 @@ namespace ast {
 	inline void Function::addBodyNode(Node* node) {
 		body.push_back(node);
 	}
-
-	inline llvm::Value* Function::getParameterValue(uint32_t offset) {
-		assert(offset < parameterValues.size());
-		return parameterValues.at(offset);
-	}
-
-	class ParameterDefinition : public Node {
-	private:
-		std::string name;
-		Function* fun;
-		uint32_t index;
-		uint32_t type;
-	protected:
-		virtual void assemble(ModuleBuilder& mb);
-	public:
-		ParameterDefinition(std::string name, Function* fun, uint32_t index, uint32_t type) :
-			name(name), fun(fun), index(index), type(type) {};
-	};
-
 }}
 
 #endif /* KENSHO_AST_FUNCTION_HPP_ */

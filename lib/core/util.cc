@@ -46,6 +46,7 @@ using namespace kensho;
 				return llvm::Type::DoubleTy;
 		}
 
+		assert(false);
 		return NULL;
 	}
 

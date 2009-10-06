@@ -24,8 +24,8 @@ using namespace kensho;
 	}
 
 	void ast::Callable::emitDefinition(ast::ModuleBuilder& mb) {
-		if (mb.isDeclared(name)) {
-			throw(ParseError("symbol " + name + " is already declared",
+		if (mb.isFunctionDeclared(name)) {
+			throw(ParseError("function " + name + " is already declared",
 				getLine(), getOffset()));
 		}
 		llvm::FunctionType* funtype = llvm::FunctionType::get(

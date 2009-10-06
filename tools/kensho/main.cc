@@ -181,6 +181,7 @@
 
 			parser.createTreeParser();
 			antlr::treeast_t treeAst = parser.parseTree();
+
 			ast::ModuleBuilder mb("default", treeAst.functions, treeAst.structs);
 			mb.build(op.mem2reg, op.optimize);
 

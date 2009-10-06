@@ -35,6 +35,10 @@ options
 	#include <kensho/ast/While.hpp>
 	#include <kensho/ast/Return.hpp>
 	#include <kensho/ast/Cast.hpp>
+	#include <kensho/ast/ConstructorCall.hpp>
+	#include <kensho/ast/Delete.hpp>
+	#include <kensho/error.hpp>
+	
 	#include <vector>
 }
 
@@ -91,6 +95,39 @@ structBodyDecl[kensho::ast::Struct* parent]
 		$parent->addVariableDefinition($variable.node);
 	}
 	|	structFunction[$parent]
+	|	ctor=structCtor[$parent->getName()] {
+			if ($parent->getConstructor() != NULL) {
+				throw(kensho::ParseError("more than one constructor defined in struct " 
+					+ $parent->getName()));
+			}
+			$parent->setConstructor($ctor.node);
+		}
+	|	structDtor[$parent]
+	;
+	
+structCtor[std::string parentName] returns [kensho::ast::Function* node]
+@init { uint32_t paramCount = 0; }
+	:	^(CTOR {
+			$node = new kensho::ast::Function("new", T_VOID);
+		}
+			params[$node, paramCount++]* 
+			( statement {
+				$node->addBodyNode($statement.node);
+			})*
+		)
+	;
+	
+structDtor[kensho::ast::Struct* parent]
+	:	^(DTOR {
+			if ($parent->hasDestructor()) {
+				throw(kensho::ParseError("more than one destructor defined in struct "
+					+ $parent->getName()));
+			}
+		}
+			( stat=statement {
+				$parent->addDestructorBodyNode($stat.node);
+			})* 
+		)
 	;
 	
 structFunction[kensho::ast::Struct* parent]
@@ -145,10 +182,6 @@ params[kensho::ast::Function* node, uint32_t index]
 	:	^(ARGDEF type n=ID) {
 			std::string name((char*)$n->getText($n)->chars);
 			$node->addParameter(name, $type.tree->getType($type.tree));
-			// add variable definition for the parameter
-			$node->addBodyNode(new kensho::ast::ParameterDefinition(
-				name, $node, index, $type.tree->getType($type.tree)
-			));
 		}
 	;
 
@@ -158,8 +191,15 @@ statement returns [kensho::ast::Node* node]
 	|	ifStat { $node = $ifStat.node; }
 	|	whileStat { $node = $whileStat.node; }
 	|	returnStatement { $node = $returnStatement.node; }
+	|	deleteStatement { $node = $deleteStatement.node; }
 	;
 	
+deleteStatement returns [kensho::ast::Delete* node]
+	:	^(K_DELETE n=ID) {
+			$node = new kensho::ast::Delete(std::string((char*)$n->getText($n)->chars));
+		}
+	;	
+
 returnStatement returns [kensho::ast::Return* node]
 @after {
 	if ($node == NULL) {
@@ -229,7 +269,9 @@ whileStat returns [kensho::ast::While* node]
 variable returns [kensho::ast::VariableDefinition* node]
 @after {
 	std::string name((char*)$n->getText($n)->chars);
-	$node = new kensho::ast::VariableDefinition(name, $t.tree->getType($t.tree));
+	std::string text((char*)$t.tree->getText($t.tree)->chars);
+	$node = new kensho::ast::VariableDefinition(
+		name, $t.tree->getType($t.tree), text);
 	$node->setSourcePosition($n.line, $n.pos);
 }
 	:	^(VARDEF t=type n=ID) 
@@ -244,6 +286,7 @@ type
 	|	T_LONG
 	|	T_FLOAT
 	|	T_DOUBLE
+	|	ID
 	;
 
 expression returns [kensho::ast::Node* node]
@@ -258,6 +301,9 @@ expression returns [kensho::ast::Node* node]
 		}
 	|	call {
 			$node = $call.node;
+		}
+	|	ctorCall {
+			$node = $ctorCall.node;
 		}
 	|	^(UNOP unop unex=expression) {
 			pANTLR3_COMMON_TOKEN tok = $unop.tree->getToken($unop.tree);
@@ -289,6 +335,19 @@ call returns [kensho::ast::Call* node]
 				$node->addArgument($ex.node);
 			})*
 		)
+	;
+	
+ctorCall returns [kensho::ast::ConstructorCall* node]
+	:	^(K_NEW 
+			name=ID {
+				std::string nameStr((char*)$name->getText($name)->chars);
+				$node = new kensho::ast::ConstructorCall(nameStr);
+				$node->setSourcePosition($name.line, $name.pos);
+			}
+			( ex=expression {
+				$node->addArgument($ex.node);
+			})*
+		) 
 	;
 
 literal returns [kensho::ast::Literal* node]

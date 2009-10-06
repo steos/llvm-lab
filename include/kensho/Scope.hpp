@@ -48,7 +48,32 @@ namespace kensho {
 
 		void popScope();
 
+		void popAll();
+
+		void clearScope();
+
+		void popAllAndClear();
+
 	};
+
+	template <typename Symbol>
+	inline void Scope<Symbol>::popAll() {
+		while (current > 0) {
+			symbolStack.erase(symbolStack.end());
+			current--;
+		}
+	}
+
+	template <typename Symbol>
+	inline void Scope<Symbol>::clearScope() {
+		symbolStack[current].clear();
+	}
+
+	template <typename Symbol>
+	inline void Scope<Symbol>::popAllAndClear() {
+		popAll();
+		clearScope();
+	}
 
 	template <typename Symbol>
 	inline bool Scope<Symbol>::hasSymbol(std::string name) {

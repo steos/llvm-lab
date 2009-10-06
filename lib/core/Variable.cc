@@ -18,6 +18,8 @@
 #include <kensho/ast/ModuleBuilder.hpp>
 #include <kensho/error.hpp>
 
+#include <antlr.hpp>
+
 using namespace kensho;
 
 	void ast::Variable::assemble(ast::ModuleBuilder& mb) {
@@ -27,9 +29,18 @@ using namespace kensho;
 		}
 
 		VariableDefinition* var = mb.getSymbol(name);
-		if (var == NULL) {
-			throw(ParseError("variable " + name + " was not declared",
-				getLine(), getOffset()));
+		assert(var != NULL);
+
+		if (!var->isInitialized()) {
+			// if this is a primitive type we initialize
+			// it to a default value
+			if (var->getType() != ID) {
+				assert(false && "default initialization of primitive variables not yet implemented");
+			}
+			else {
+				throw(ParseError("cannot use uninitialized variable " + name,
+					getLine(), getOffset()));
+			}
 		}
 
 		value = mb.getIRBuilder().CreateLoad(var->getValue(), name.c_str());

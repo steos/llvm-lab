@@ -16,6 +16,7 @@
 #include <kensho/ast/ModuleBuilder.hpp>
 #include <kensho/ast/VariableDefinition.hpp>
 #include <kensho/ast/Callable.hpp>
+#include <kensho/ast/Struct.hpp>
 
 #include <llvm/ModuleProvider.h>
 #include <llvm/Analysis/Verifier.h>
@@ -33,6 +34,10 @@ using namespace kensho;
 
 	void ast::ModuleBuilder::declareFunction(Callable* fun) {
 		funScope.addSymbol(fun->getName(), fun);
+	}
+
+	void ast::ModuleBuilder::declareUserType(Struct* st) {
+		typeScope.addSymbol(st->getName(), st);
 	}
 
 	void ast::ModuleBuilder::emitDefinitions() {

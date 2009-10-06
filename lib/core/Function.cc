@@ -27,19 +27,25 @@ using namespace kensho;
 	void ast::Function::assemble(ast::ModuleBuilder& mb) {
 		llvm::Function* fun = llvm::cast<llvm::Function>(value);
 		assert(fun != NULL);
-
-		// set parameter names
-		llvm::Function::arg_iterator arg = NULL;
-		int32_t i = 0;
-		for (arg = fun->arg_begin(); arg != fun->arg_end(); ++arg) {
-			std::string str = parameterNames.at(i++);
-			arg->setName(str.c_str());
-			parameterValues.push_back(arg);
-		}
+		uint32_t numParams = fun->getFunctionType()->getNumParams();
+		assert(numParams == parameterNames.size());
+		assert(numParams == parameterTypes.size());
 
 		// emit body
 		llvm::BasicBlock* entryBlock = llvm::BasicBlock::Create("entry", fun);
 		mb.getIRBuilder().SetInsertPoint(entryBlock);
+
+		// set parameter names and emit declarations
+		llvm::Function::arg_iterator arg = NULL;
+		int32_t i = 0;
+		for (arg = fun->arg_begin(); arg != fun->arg_end(); ++arg, ++i) {
+			std::string str = parameterNames.at(i);
+			arg->setName(str.c_str());
+			VariableDefinition* vardef = new ast::VariableDefinition(
+				str, parameterTypes.at(i));
+			llvm::Value* ptr = vardef->emit(mb);
+			mb.getIRBuilder().CreateStore(arg, ptr);
+		}
 
 		uint32_t numStats = body.size();
 		for (uint32_t i = 0; i < numStats; ++i) {
@@ -53,8 +59,8 @@ using namespace kensho;
 		// if we have no return statement and the function
 		// returns void we synthesize a return statement
 		// otherwise bail out with error
-		if (numStats > 0
-			&& body.at(numStats - 1)->isReturnStatement() == false) {
+		if (numStats == 0 || (numStats > 0
+			&& body.at(numStats - 1)->isReturnStatement() == false)) {
 			if (type == T_VOID) {
 				Return* returnStat = new Return(NULL);
 				returnStat->emit(mb);
@@ -77,11 +83,7 @@ using namespace kensho;
 					getLine(), getOffset()));
 			}
 		}
-	}
 
-	void ast::ParameterDefinition::assemble(ast::ModuleBuilder& mb) {
-		assert (mb.isDeclared(name) == false && "parameter already declared");
-		VariableDefinition* vardef = new VariableDefinition(name, type);
-		llvm::Value* ptr = vardef->emit(mb);
-		value = mb.getIRBuilder().CreateStore(fun->getParameterValue(index), ptr);
+		// clear all symbols we declared in this function
+		mb.clearSymbolScope();
 	}

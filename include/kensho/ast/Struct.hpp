@@ -35,22 +35,29 @@ namespace ast {
 			Struct* parent;
 			ast::Function* function;
 			bool staticDef;
+		protected:
+			void assemble(ModuleBuilder&);
 		public:
 			Function(Struct* parent, ast::Function* func, bool staticDef) :
 				parent(parent), function(func), staticDef(staticDef) {};
 			void emitDefinition(ModuleBuilder& mb);
+			void emit(ModuleBuilder& mb);
 		};
 		std::string name;
-		llvm::StructType* assemblyType;
+		const llvm::Type* assemblyType;
 		std::vector<Struct::Function*> functions;
-		std::vector<const llvm::Type*> variables;
+		std::vector<VariableDefinition*> variables;
 		std::map<std::string, int> varmap;
-		ast::Function* ctor;
-		std::vector<Node*> dtor;
+		Struct::Function* ctor;
+		Struct::Function* dtor;
+		std::vector<Node*> dtorBody;
+		void emitTypeDefinition(ModuleBuilder&);
+		void emitConstructorDefinition(ModuleBuilder&);
+		void emitDestructorDefinition(ModuleBuilder&);
 	protected:
 		virtual void assemble(ModuleBuilder& mb);
 	public:
-		Struct(std::string name) : name(name) {};
+		Struct(std::string name) : name(name), assemblyType(NULL), ctor(NULL), dtor(NULL) {};
 		void addFunction(ast::Function* func, bool staticDef) {
 			functions.push_back(new Struct::Function(this, func, staticDef));
 		}
@@ -58,15 +65,15 @@ namespace ast {
 			addFunction(func, false);
 		}
 		void addVariableDefinition(VariableDefinition* vardef) {
-			variables.push_back(vardef->getAssemblyType());
+			variables.push_back(vardef);
 			// start the index at 1
 			varmap[vardef->getName()] = variables.size();
 		}
 		void setConstructor(ast::Function* ctor) {
-			this->ctor = ctor;
+			this->ctor = new Struct::Function(this, ctor, false);
 		}
 		void addDestructorBodyNode(Node* node) {
-			dtor.push_back(node);
+			dtorBody.push_back(node);
 		}
 		bool hasVariable(std::string name) {
 			return varmap.count(name) > 0;
@@ -80,9 +87,25 @@ namespace ast {
 		}
 		void emitDefinition(ModuleBuilder& mb);
 
+		Struct::Function* getConstructor() {
+			return ctor;
+		}
+
+		bool hasDestructor() {
+			return dtorBody.size() > 0;
+		}
+
 		llvm::Value* emit(ModuleBuilder& mb) {
 			assemble(mb);
 			return NULL;
+		}
+
+		std::string getName() {
+			return name;
+		}
+
+		const llvm::Type* getAssemblyType() {
+			return assemblyType;
 		}
 	};
 

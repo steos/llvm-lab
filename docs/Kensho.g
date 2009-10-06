@@ -75,6 +75,7 @@ tokens
 	K_RETURN		= 'return';
 	K_NEW			= 'new';
 	K_DELETE		= 'delete';
+	K_THIS			= 'this';
 	K_STRUCT		= 'struct';
 	K_STATIC		= 'static';
 	
@@ -100,6 +101,8 @@ tokens
 	ELSEIF;
 	STRUCTFUN;
 	MODS;
+	CTOR;
+	DTOR;
 }
 
 @parser::preincludes {
@@ -270,6 +273,17 @@ structDecl
 structBodyDecl
 	:	variable SEMICOLON!
 	|	structFunction
+	|	structCtor
+	|	structDtor
+	;
+	
+structCtor
+	:	K_NEW PAREN_L params? PAREN_R block
+		->	^(CTOR params? block)
+	;
+	
+structDtor
+	:	K_DELETE block -> ^(DTOR block)
 	;
 	
 structFunction
@@ -287,11 +301,16 @@ statement
 	|	ifStat
 	|	whileStat
 	|	returnStatement SEMICOLON!
+	|	deleteStatement SEMICOLON!
 	;
 	
 returnStatement
 	:	K_RETURN expression?
 		->	^(K_RETURN expression?)
+	;
+	
+deleteStatement
+	:	K_DELETE^ ID
 	;
 	
 block
@@ -339,6 +358,7 @@ type
 	|	T_LONG
 	|	T_FLOAT
 	|	T_DOUBLE
+	|	ID
 	;
 
 expression
@@ -361,20 +381,37 @@ expression
 	
 primary
 	:	atom
-	|	PAREN_L type PAREN_R atom -> ^(CAST type atom)
+	|	parenOrCastExpr
+	|	K_NEW ID PAREN_L args? PAREN_R -> ^(K_NEW ID args?)
 	;
+	
+castExpr
+	:	PAREN_L type PAREN_R atom -> ^(CAST type atom)
+	;	
 	
 atom
 	:	literal -> ^(LIT literal)
 	|	call
 	|	ID
-	|	PAREN_L! expression PAREN_R!
-	|	unop atom -> ^(UNOP unop atom)
+	|	unop atomOrParenExpr -> ^(UNOP unop atomOrParenExpr)
+	;
+	
+atomOrParenExpr
+	:	atom | parenExpr
+	;
+	
+parenOrCastExpr	
+	:	( PAREN_L type PAREN_R atom ) => castExpr
+	|	parenExpr
+	;
+	
+parenExpr
+	:	PAREN_L! expression PAREN_R!
 	;
 	
 call
 	:	ID PAREN_L args? PAREN_R
-		-> ^(CALL ID args*)
+		-> ^(CALL ID args?)
 	;
 
 literal
