@@ -16,6 +16,7 @@
 #include <kensho/ast/Callable.hpp>
 #include <kensho/ast/ModuleBuilder.hpp>
 #include <kensho/error.hpp>
+#include <vector>
 
 using namespace kensho;
 
@@ -28,8 +29,13 @@ using namespace kensho;
 			throw(ParseError("function " + name + " is already declared",
 				getLine(), getOffset()));
 		}
+		std::vector<const llvm::Type*> paramTypes;
+		std::vector<Type*>::iterator it;
+		for (it = parameterTypes.begin(); it != parameterTypes.end(); ++it) {
+			paramTypes.push_back((*it)->getAssemblyType());
+		}
 		llvm::FunctionType* funtype = llvm::FunctionType::get(
-			assemblyType, parameterTypes, false);
+			type->getAssemblyType(), paramTypes, false);
 		llvm::Function* fun = llvm::Function::Create(
 			funtype, llvm::Function::ExternalLinkage, name, mb.getModule());
 

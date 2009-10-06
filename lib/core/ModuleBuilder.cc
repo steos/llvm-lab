@@ -36,32 +36,28 @@ using namespace kensho;
 		funScope.addSymbol(fun->getName(), fun);
 	}
 
-	void ast::ModuleBuilder::declareUserType(Struct* st) {
-		typeScope.addSymbol(st->getName(), st);
-	}
-
 	void ast::ModuleBuilder::emitDefinitions() {
-		int numFuns = functions->size();
-		int numStructs = structs->size();
+		int numFuns = functions.size();
+		int numStructs = structs.size();
 		for (int i = 0; i < numStructs; ++i) {
-			Struct* st = structs->at(i);
+			Struct* st = structs.at(i);
 			st->emitDefinition(*this);
 		}
 		for (int i = 0; i < numFuns; ++i) {
-			Callable* cb = functions->at(i);
+			Callable* cb = functions.at(i);
 			cb->emitDefinition(*this);
 		}
 	}
 
 	void ast::ModuleBuilder::emitImplementations() {
-		int numFuns = functions->size();
-		int numStructs = structs->size();
+		int numFuns = functions.size();
+		int numStructs = structs.size();
 		for (int i = 0; i < numStructs; ++i) {
-			Struct* st = structs->at(i);
+			Struct* st = structs.at(i);
 			st->emit(*this);
 		}
 		for (int i = 0; i < numFuns; ++i) {
-			Callable* cb = functions->at(i);
+			Callable* cb = functions.at(i);
 			llvm::Value* value = cb->emit(*this);
 			Function* fun = dynamic_cast<Function*>(cb);
 			if (fun) {

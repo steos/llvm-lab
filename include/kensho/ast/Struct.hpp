@@ -51,7 +51,7 @@ namespace ast {
 		Struct::Function* ctor;
 		Struct::Function* dtor;
 		std::vector<Node*> dtorBody;
-		void emitTypeDefinition(ModuleBuilder&);
+		void assembleType(ModuleBuilder&);
 		void emitConstructorDefinition(ModuleBuilder&);
 		void emitDestructorDefinition(ModuleBuilder&);
 	protected:

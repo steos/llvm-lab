@@ -46,10 +46,10 @@ using namespace kensho;
 			VariableDefinition* vardef = dynamic_cast<VariableDefinition*>(
 				mb.getSymbol(var->getName()));
 			assert(vardef != NULL);
-			if (vardef->getAssemblyType() != typeRight) {
+			if (vardef->getType()->getAssemblyType() != typeRight) {
 				try {
 					llvm::Value* castVal = implicitTypeCast(
-						typeRight, vardef->getAssemblyType(), valRight, mb);
+						typeRight, vardef->getType()->getAssemblyType(), valRight, mb);
 
 					assert(castVal != NULL);
 					valRight = castVal;

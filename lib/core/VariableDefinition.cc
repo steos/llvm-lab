@@ -24,33 +24,12 @@
 
 using namespace kensho;
 
-	const llvm::Type* ast::VariableDefinition::toAssemblyType(ast::ModuleBuilder& mb) {
-		if (assemblyType != NULL) {
-			return assemblyType;
-		}
-		if (type == ID) {
-			Struct* st = mb.getUserType(text);
-			if (st != NULL) {
-				assemblyType = st->getAssemblyType();
-			}
-		}
-		else {
-			assemblyType = ast::toAssemblyType(type);
-		}
-
-		if (assemblyType == NULL) {
-			throw(ParseError("declaration of variable " + name
-				+ " with undeclared type ", getLine(), getOffset()));
-		}
-		return assemblyType;
-	}
-
 	void ast::VariableDefinition::assemble(ast::ModuleBuilder& mb) {
 		if (mb.isDeclared(name)) {
 			throw(ParseError("symbol " + name + " is already declared",
 				getLine(), getOffset()));
 		}
-		toAssemblyType(mb);
-		value = mb.getIRBuilder().CreateAlloca(assemblyType, 0, name.c_str());
+		const llvm::Type* ty = type->getAssemblyType();
+		value = mb.getIRBuilder().CreateAlloca(ty, 0, name.c_str());
 		mb.declareSymbol(this);
 	}

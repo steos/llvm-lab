@@ -88,10 +88,14 @@
 		mv $GRAMMAR_OUT/*.cc "$GRAMMAR_DST_C"
 		mv $GRAMMAR_OUT/*.h "$GRAMMAR_DST_H"
 		
-		# cleanup
-		rm -rf "$GRAMMAR_OUT"
-		
 		echo "OK"
-		exit 0
  	fi
  fi
+ 
+ if test -d "$GRAMMAR_OUT" ; then
+ 	rm -rf "$GRAMMAR_OUT"
+ fi
+ 
+ exit 0
+ 
+ 

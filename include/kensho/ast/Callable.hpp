@@ -17,6 +17,8 @@
 #define KENSHO_AST_CALLABLE_HPP_
 
 #include <kensho/ast/Node.hpp>
+#include <kensho/ast/Type.hpp>
+
 #include <kensho/ast/util.hpp>
 #include <llvm/Type.h>
 
@@ -26,36 +28,35 @@ namespace ast {
 	/*
 	 * Base class for nodes that result in a callable
 	 * function, i.e. captures the name, return type and parameter types
-	 * and is implemented by the function node as well as native function nodes
-	 * and possibly future variations of a callable object like closures.
-	 * Callable extends Symbol so we can easily support first class functions.
 	 */
 	class Callable : public Node {
 	protected:
 		std::string name;
-		uint32_t type;
-		const llvm::Type* assemblyType;
-		std::vector<const llvm::Type*> parameterTypes;
+		Type* type;
+		std::vector<Type*> parameterTypes;
 		virtual void assemble(ModuleBuilder& mb);
 	public:
-		Callable(std::string name, uint32_t type) :
-			name(name), type(type) {
-			assemblyType = toAssemblyType(type);
-			assert(assemblyType != NULL);
-		};
+		Callable(std::string name, Type* type) :
+			name(name), type(type) {};
 		virtual void emitDefinition(ModuleBuilder& mb);
-		virtual void addParameter(uint32_t type);
-		virtual void prependParameter(const llvm::Type*);
-		std::vector<const::llvm::Type*> getParameterTypes();
+		virtual void addParameter(Type* type);
+		virtual void prependParameter(Type*);
+		std::vector<Type*> getParameterTypes();
 		int countParameters();
 		std::string getName();
 		void setName(std::string name);
-		const llvm::Type* getType();
+		const Type* getType();
+		Type* getParameterType(uint32_t offset);
 		virtual ~Callable() {};
 	};
 
-	inline const llvm::Type* Callable::getType() {
-		return assemblyType;
+	inline Type* Callable::getParameterType(uint32_t offset) {
+		assert(offset < parameterTypes.size());
+		return parameterTypes.at(offset);
+	}
+
+	inline const Type* Callable::getType() {
+		return type;
 	}
 
 	inline std::string Callable::getName() {
@@ -66,17 +67,15 @@ namespace ast {
 		this->name = name;
 	}
 
-	inline void Callable::prependParameter(const llvm::Type* type) {
+	inline void Callable::prependParameter(Type* type) {
 		parameterTypes.insert(parameterTypes.begin(), type);
 	}
 
-	inline void Callable::addParameter(uint32_t type) {
-		const llvm::Type* asmt = toAssemblyType(type);
-		assert(asmt != NULL);
-		parameterTypes.push_back(asmt);
+	inline void Callable::addParameter(Type* type) {
+		parameterTypes.push_back(type);
 	}
 
-	inline std::vector<const::llvm::Type*> Callable::getParameterTypes() {
+	inline std::vector<Type*> Callable::getParameterTypes() {
 		return parameterTypes;
 	}
 

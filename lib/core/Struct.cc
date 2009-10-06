@@ -15,6 +15,7 @@
 
 #include <kensho/ast/Struct.hpp>
 #include <kensho/ast/ModuleBuilder.hpp>
+#include <kensho/ast/Type.hpp>
 
 #include <llvm/AbstractTypeUser.h>
 #include <llvm/DerivedTypes.h>
@@ -30,22 +31,22 @@ using namespace kensho;
 		}
 	}
 
-	void ast::Struct::emitTypeDefinition(ModuleBuilder& mb) {
+	void ast::Struct::assembleType(ModuleBuilder& mb) {
 		std::vector<const llvm::Type*> types;
 		llvm::PATypeHolder opaqueTy = llvm::OpaqueType::get();
 		bool recursive = false;
 		for (uint32_t i = 0; i < variables.size(); ++i) {
 			VariableDefinition* var = variables.at(i);
-			// if a member of the struct is the struct itself we have
-			// a recursive type and need to do some more
-			// work to construct the corresponding llvm type
-			if (var->getText() == name) {
-				recursive = true;
-				types.push_back(llvm::PointerType::getUnqual(opaqueTy));
+			Type* ty = var->getType();
+			if (ty->isPrimitive() || ty->getName() != name) {
+				types.push_back(ty->getAssemblyType());
 			}
 			else {
-				const llvm::Type* ty = var->toAssemblyType(mb);
-				types.push_back(ty);
+				// if a member of the struct is the struct itself we have
+				// a recursive type and need to do some more
+				// work to construct the corresponding llvm type
+				recursive = true;
+				types.push_back(llvm::PointerType::getUnqual(opaqueTy));
 			}
 		}
 		llvm::StructType* ty = llvm::StructType::get(types);
@@ -56,29 +57,29 @@ using namespace kensho;
 			ty = llvm::cast<llvm::StructType>(opaqueTy.get());
 		}
 		mb.getModule()->addTypeName(name, ty);
-		mb.declareUserType(this);
 
 		// we only work with references, i.e. pointers
 		assemblyType = llvm::PointerType::getUnqual(ty);
+		mb.declareUserType(new Type(mb, assemblyType, name));
 	}
 
 	void ast::Struct::emitConstructorDefinition(ModuleBuilder& mb) {
 		if (ctor == NULL) {
 			ctor = new Struct::Function(this,
-				new ast::Function("new", T_VOID, std::vector<Node*>()), false);
+				new ast::Function("new", new Type(mb, llvm::Type::VoidTy), std::vector<Node*>()), false);
 		}
 
 		ctor->emitDefinition(mb);
 	}
 
 	void ast::Struct::emitDestructorDefinition(ModuleBuilder& mb) {
-		ast::Function* dtorFun = new ast::Function("delete", T_VOID, dtorBody);
+		ast::Function* dtorFun = new ast::Function("delete", new Type(mb, llvm::Type::VoidTy), dtorBody);
 		dtor = new Struct::Function(this, dtorFun, false);
 		dtor->emitDefinition(mb);
 	}
 
 	void ast::Struct::emitDefinition(ModuleBuilder& mb) {
-		emitTypeDefinition(mb);
+		assembleType(mb);
 		emitConstructorDefinition(mb);
 		if (hasDestructor()) {
 			emitDestructorDefinition(mb);
@@ -92,7 +93,7 @@ using namespace kensho;
 	void::ast::Struct::Function::emitDefinition(ModuleBuilder& mb) {
 		function->setName(parent->name + "." + function->getName());
 		if (staticDef == false) {
-			function->prependParameter("this", parent->assemblyType);
+			function->prependParameter("this", new Type(mb, parent->assemblyType));
 		}
 		function->emitDefinition(mb);
 	}

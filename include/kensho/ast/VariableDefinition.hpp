@@ -17,6 +17,8 @@
 #define KENSHO_AST_VARIABLEDEFINITION_HPP_
 
 #include <kensho/ast/Node.hpp>
+#include <kensho/ast/Type.hpp>
+
 #include <kensho/ast/util.hpp>
 
 namespace kensho {
@@ -28,30 +30,19 @@ namespace ast {
 	class VariableDefinition : public Node {
 	private:
 		std::string name;
-		uint32_t type;
-		std::string text;
-		const llvm::Type* assemblyType;
+		Type* type;
 	protected:
 		virtual void assemble(ModuleBuilder& mb);
 	public:
-		VariableDefinition(std::string name, uint32_t type, std::string text) :
-			name(name), type(type), text(text), assemblyType(NULL) {};
-		VariableDefinition(std::string name, uint32_t type) :
-			name(name), type(type), assemblyType(NULL) {};
-		VariableDefinition(std::string name, const llvm::Type* ty) :
-			name(name), type(0), assemblyType(ty) {};
+		VariableDefinition(std::string name, Type* type) :
+			name(name), type(type) {};
 
 		std::string getName();
 		void setName(std::string name);
-		uint32_t getType();
-		const llvm::Type* getAssemblyType();
-		const llvm::Type* toAssemblyType(ModuleBuilder&);
-		std::string getText();
+		Type* getType() {
+			return type;
+		}
 	};
-
-	inline std::string VariableDefinition::getText() {
-		return text;
-	}
 
 	inline void VariableDefinition::setName(std::string name) {
 		this->name = name;
@@ -59,13 +50,6 @@ namespace ast {
 
 	inline std::string VariableDefinition::getName() {
 		return name;
-	}
-
-	inline const llvm::Type* VariableDefinition::getAssemblyType() {
-		return assemblyType;
-	}
-	inline uint32_t VariableDefinition::getType() {
-		return type;
 	}
 
 }} // end ns

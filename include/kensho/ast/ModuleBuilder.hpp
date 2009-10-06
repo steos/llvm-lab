@@ -17,6 +17,7 @@
 #define KENSHO_AST_MODULEBUILDER_HPP_
 
 #include <kensho/Scope.hpp>
+#include <kensho/ast/Type.hpp>
 
 #include <llvm/Value.h>
 #include <llvm/Module.h>
@@ -44,23 +45,37 @@ namespace ast {
 	private:
 		llvm::Module module;
 		llvm::IRBuilder<> irBuilder;
-		std::vector<Callable*>* functions;
-		std::vector<ast::Struct*>* structs;
+		std::vector<Callable*> functions;
+		std::vector<ast::Struct*> structs;
 		Scope<VariableDefinition*> symScope;
 		Scope<Callable*> funScope;
-		Scope<Struct*> typeScope;
+		std::map<std::string, Type*> types;
 		llvm::FunctionPassManager* fpm;
 		llvm::ExecutionEngine* engine;
 		void initEngine(bool mem2reg, bool optimize);
 		void emitStructFunctionDefinitions();
 	public:
-		ModuleBuilder(std::string name, std::vector<Callable*>* functions,
-			std::vector<ast::Struct*>* structs) :
-			module(name), functions(functions), structs(structs) {};
+		ModuleBuilder(std::string name) : module(name) {};
 
 		llvm::IRBuilder<>& getIRBuilder();
 
 		llvm::Module* getModule();
+
+		void addFunction(Callable* fun) {
+			functions.push_back(fun);
+		}
+
+		void addStruct(Struct* st) {
+			structs.push_back(st);
+		}
+
+		Type* createType(uint32_t token, std::string name) {
+			return new Type(*this, token, name);
+		}
+
+		Type* createType(const llvm::Type* ty) {
+			return new Type(*this, ty);
+		}
 
 		void declareSymbol(VariableDefinition* symbol);
 
@@ -74,11 +89,11 @@ namespace ast {
 
 		bool isDeclared(std::string name);
 
-		void declareUserType(Struct*);
+		void declareUserType(Type*);
 
 		bool isUserTypeDeclared(std::string name);
 
-		Struct* getUserType(std::string name);
+		Type* getUserType(std::string name);
 
 		VariableDefinition* getSymbol(std::string name);
 
@@ -101,11 +116,15 @@ namespace ast {
 	}
 
 	inline bool ModuleBuilder::isUserTypeDeclared(std::string name) {
-		return typeScope.hasSymbol(name);
+		return types.count(name) > 0;
 	}
 
-	inline Struct* ModuleBuilder::getUserType(std::string name) {
-		return typeScope.getSymbol(name);
+	inline Type* ModuleBuilder::getUserType(std::string name) {
+		return types[name];
+	}
+
+	inline void ModuleBuilder::declareUserType(Type* ty) {
+		types[ty->getName()] = ty;
 	}
 
 	inline bool ModuleBuilder::isFunctionDeclared(std::string name) {

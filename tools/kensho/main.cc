@@ -182,15 +182,14 @@
 			parser.createTreeParser();
 			antlr::treeast_t treeAst = parser.parseTree();
 
-			ast::ModuleBuilder mb("default", treeAst.functions, treeAst.structs);
-			mb.build(op.mem2reg, op.optimize);
+			treeAst.builder->build(op.mem2reg, op.optimize);
 
 			if (op.mode == MODE_DUMP_IR) {
-				mb.getModule()->dump();
+				treeAst.builder->getModule()->dump();
 				return EXIT_OK;
 			}
 
-			return runJIT(mb);
+			return runJIT(*(treeAst.builder));
 		}
 		catch (ParseError& e) {
 			std::cerr << "Parse Error: " << e.getMessage();

@@ -37,6 +37,8 @@ options
 	#include <kensho/ast/Cast.hpp>
 	#include <kensho/ast/ConstructorCall.hpp>
 	#include <kensho/ast/Delete.hpp>
+	#include <kensho/ast/Type.hpp>
+	#include <kensho/ast/ModuleBuilder.hpp>
 	#include <kensho/error.hpp>
 	
 	#include <vector>
@@ -46,21 +48,22 @@ options
 	#include <kensho/ast/Literal.hpp>
 }
 
-program returns [std::vector<kensho::ast::Callable*>* functions, 
-	std::vector<kensho::ast::Struct*>* structs]
-	
-@init {
-	$functions = new std::vector<kensho::ast::Callable*>();
-	$structs = new std::vector<kensho::ast::Struct*>();
+program returns [kensho::ast::ModuleBuilder* builder] 
+scope {
+	kensho::ast::ModuleBuilder* mb;
 }
+@init {
+	$program::mb = new kensho::ast::ModuleBuilder("default");
+}
+@after { $builder = $program::mb; }
 	:	( 	function {
-			$functions->push_back($function.node);
+			$program::mb->addFunction($function.node);
 		} 
 		| 	kenniFunction { 
-				$functions->push_back($kenniFunction.node); 
+				$program::mb->addFunction($kenniFunction.node); 
 			} 
 		|	structDecl {
-				$structs->push_back($structDecl.node);			
+				$program::mb->addStruct($structDecl.node);			
 			}
 		)*
 	;
@@ -70,11 +73,11 @@ kenniFunction returns [kensho::ast::Callable* node]
 			t=functionType 
 			n=ID {
 				std::string name((char*)$n->getText($n)->chars);
-				$node = new kensho::ast::Callable(name, $t.tree->getType($t.tree));
+				$node = new kensho::ast::Callable(name, $t.ty);
 				$node->setSourcePosition($n.line, $n.pos);
 			}
 			( type {
-				$node->addParameter($type.tree->getType($type.tree));
+				$node->addParameter($type.ty);
 			})*
 		) 
 	;
@@ -108,7 +111,7 @@ structBodyDecl[kensho::ast::Struct* parent]
 structCtor[std::string parentName] returns [kensho::ast::Function* node]
 @init { uint32_t paramCount = 0; }
 	:	^(CTOR {
-			$node = new kensho::ast::Function("new", T_VOID);
+			$node = new kensho::ast::Function("new", $program::mb->createType(T_VOID, ""));
 		}
 			params[$node, paramCount++]* 
 			( statement {
@@ -167,21 +170,24 @@ signature returns [kensho::ast::Function* node]
 			t=functionType 
 			n=ID {
 				std::string name((char*)$n->getText($n)->chars);
-				$node = new kensho::ast::Function(name, $t.tree->getType($t.tree));
+				$node = new kensho::ast::Function(name, $t.ty);
 				$node->setSourcePosition($n.line, $n.pos);
 			} 
 			params[$node, paramCount++]*
 		) 
 	;
 	
-functionType
-	:	T_VOID | type
+functionType returns [kensho::ast::Type* ty]
+	:	T_VOID {
+			$ty = $program::mb->createType(T_VOID, "");
+		} 
+	| 	type { $ty = $type.ty; }
 	;	
 		
 params[kensho::ast::Function* node, uint32_t index]
 	:	^(ARGDEF type n=ID) {
 			std::string name((char*)$n->getText($n)->chars);
-			$node->addParameter(name, $type.tree->getType($type.tree));
+			$node->addParameter(name, $type.ty);
 		}
 	;
 
@@ -270,14 +276,23 @@ variable returns [kensho::ast::VariableDefinition* node]
 @after {
 	std::string name((char*)$n->getText($n)->chars);
 	std::string text((char*)$t.tree->getText($t.tree)->chars);
-	$node = new kensho::ast::VariableDefinition(
-		name, $t.tree->getType($t.tree), text);
+	$node = new kensho::ast::VariableDefinition(name, $t.ty);
 	$node->setSourcePosition($n.line, $n.pos);
 }
 	:	^(VARDEF t=type n=ID) 
 	;
 	
-type
+type returns [kensho::ast::Type* ty]
+@after	{
+	std::string text;
+	pANTLR3_STRING str = $type.tree->getText($type.tree);
+	if (str != NULL) {
+		text = std::string((char*)str->chars); 
+	}
+	$ty = $program::mb->createType(
+		$type.tree->getType($type.tree), text
+	);
+}
 	:	T_BOOL
 	|	T_BYTE
 	|	T_SHORT

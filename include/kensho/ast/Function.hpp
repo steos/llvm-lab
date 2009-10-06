@@ -17,7 +17,7 @@
 #define KENSHO_AST_FUNCTION_HPP_
 
 #include <kensho/ast/Callable.hpp>
-#include <llvm/Type.h>
+#include <kensho/ast/Type.hpp>
 #include <string>
 #include <vector>
 
@@ -33,27 +33,21 @@ namespace ast {
 		std::vector<Node*> body;
 		virtual void assemble(ModuleBuilder& mb);
 	public:
-		Function(std::string name, uint32_t type) :
+		Function(std::string name, Type* type) :
 			Callable(name, type) {};
-		Function(std::string name, uint32_t type, std::vector<Node*> body) :
+		Function(std::string name, Type* type, std::vector<Node*> body) :
 			Callable(name, type), body(body) {};
-		virtual void addParameter(std::string name, uint32_t type);
-		virtual void prependParameter(std::string name, const llvm::Type* type);
+		virtual void addParameter(std::string name, Type* type);
+		virtual void prependParameter(std::string name, Type* type);
 		void addBodyNode(Node*);
-		const llvm::Type* getParameterType(uint32_t offset);
 	};
 
-	inline const llvm::Type* Function::getParameterType(uint32_t offset) {
-		assert(offset < parameterTypes.size());
-		return parameterTypes.at(offset);
-	}
-
-	inline void Function::prependParameter(std::string name, const llvm::Type* type) {
+	inline void Function::prependParameter(std::string name, Type* type) {
 		Callable::prependParameter(type);
 		parameterNames.insert(parameterNames.begin(), 1, name);
 	}
 
-	inline void Function::addParameter(std::string name, uint32_t type) {
+	inline void Function::addParameter(std::string name, Type* type) {
 		Callable::addParameter(type);
 		parameterNames.push_back(name);
 	}

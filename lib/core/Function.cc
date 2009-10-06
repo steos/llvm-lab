@@ -61,7 +61,7 @@ using namespace kensho;
 		// otherwise bail out with error
 		if (numStats == 0 || (numStats > 0
 			&& body.at(numStats - 1)->isReturnStatement() == false)) {
-			if (type == T_VOID) {
+			if (type->isVoid()) {
 				Return* returnStat = new Return(NULL);
 				returnStat->emit(mb);
 			}
@@ -74,11 +74,11 @@ using namespace kensho;
 			Return* ret = dynamic_cast<Return*>(body.at(numStats - 1));
 			// verify type match
 			Node* ex = ret->getExpression();
-			if (ex != NULL && type == T_VOID) {
+			if (ex != NULL && type->isVoid()) {
 				throw(ParseError("void function " + name + " cannot return non-void type",
 					getLine(), getOffset()));
 			}
-			else if (ex != NULL && ex->getValue()->getType() != assemblyType) {
+			else if (ex != NULL && ex->getValue()->getType() != type->getAssemblyType()) {
 				throw(ParseError("type mismatch in return statement in function " + name,
 					getLine(), getOffset()));
 			}

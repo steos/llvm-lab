@@ -16,20 +16,16 @@
 #include <kensho/ast/Call.hpp>
 #include <kensho/ast/ModuleBuilder.hpp>
 #include <kensho/ast/Callable.hpp>
+#include <kensho/ast/Type.hpp>
 #include <kensho/error.hpp>
 #include <boost/lexical_cast.hpp>
 
 using namespace kensho;
 
 	void ast::Call::assemble(ast::ModuleBuilder& mb) {
-		if (!mb.isFunctionDeclared(name)) {
-			throw(ParseError("function " + name + " is not declared",
-				getLine(), getOffset()));
-		}
-
 		Callable* fun = mb.getFunction(name);
 		if (fun == NULL) {
-			throw(ParseError("symbol " + name + " is not a function and cannot be called",
+			throw(ParseError("cannot call undeclared function " + name,
 				getLine(), getOffset()));
 		}
 
@@ -39,13 +35,13 @@ using namespace kensho;
 				getLine(), getOffset()));
 		}
 
-		std::vector<const llvm::Type*> expected = fun->getParameterTypes();
+		std::vector<Type*> expected = fun->getParameterTypes();
 		std::vector<llvm::Value*> values;
 
 		for (uint32_t i = 0; i < numParams; ++i) {
 			Node* arg = arguments.at(i);
 			llvm::Value* val = arg->emit(mb);
-			if (expected.at(i) != val->getType()) {
+			if (expected.at(i)->getAssemblyType() != val->getType()) {
 				throw(ParseError("type mismatch in call to function " + name
 					+ " for argument #" + boost::lexical_cast<std::string>(i),
 					getLine(), getOffset()));
