@@ -1,1 +1,1 @@
-Parse Error: Missing token, expected SEMICOLON on line 4 at character offset 1
+Parse error in ./test/syntax-error.ks on line 4 at offset 1: missing token, expected SEMICOLON

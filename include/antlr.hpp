@@ -55,7 +55,10 @@ namespace antlr {
 		}
 		return label;
 	}
-}
+} // end ns
+
+void kenshoAntlrErrorReporter(
+	pANTLR3_BASE_RECOGNIZER rec, pANTLR3_UINT8* tokens);
 
 
 #endif /* ANTLR_HPP_ */

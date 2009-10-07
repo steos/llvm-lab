@@ -1,1 +1,2 @@
-Parse Error: Missing token, expected BRACE_L on line 3 at character offset 12
+Parse error in ./test/syntax-error-2.ks on line 3 at offset 12: missing token, expected BRACE_L
+Parse error in ./test/syntax-error-2.ks on line 3 at offset 12: missing token, expected BRACE_R

@@ -154,6 +154,15 @@
 		std::cout << (b ? "true" : "false") << "\n";
 	}
 
+	bool fileExists(std::string name) {
+		struct stat info;
+		int result = stat(name.c_str(), &info);
+		if (result == 0) {
+			return true;
+		}
+		return false;
+	}
+
 	int main(int argc, char** argv)
 	{
 		try {
@@ -171,6 +180,12 @@
 			}
 
 			const std::string file = op.files.at(0);
+
+			if (!fileExists(file)) {
+				std::cout << "Input file \"" << file << "\" does not exist.\n";
+				return EXIT_USAGE_ERROR;
+			}
+
 			Parser parser(file);
 			antlr::ast_t ast = parser.parse();
 
@@ -192,12 +207,12 @@
 			return runJIT(*(treeAst.builder));
 		}
 		catch (ParseError& e) {
-			std::cerr << "Parse Error: " << e.getMessage();
+			std::cerr << e.getMessage();
 			if (e.getLine() > 0) {
 				std::cerr << " on line " << e.getLine();
-			}
-			if (e.getOffset() > 0) {
-				std::cerr << " at character offset " << e.getOffset();
+				if (e.getOffset() > 0) {
+					std::cerr << " at offset " << e.getOffset();
+				}
 			}
 			std::cerr << "\n";
 			return EXIT_PARSE_ERROR;

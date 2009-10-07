@@ -48,6 +48,7 @@ namespace kensho {
 				nodestream = NULL;
 			}
 			if (parser != NULL) {
+				delete parser->errors;
 				parser->free(parser);
 				parser = NULL;
 			}
@@ -96,7 +97,15 @@ namespace kensho {
 				throw(ParseError("The lexer returned with errors"));
 			}
 			if (parser->pParser->rec->state->errorCount > 0) {
-				throw(ParseError("The parser returned with errors"));
+				uint32_t num = parser->errors->size();
+				std::string out;
+				for (uint32_t i = 0; i < num; i++) {
+					out += parser->errors->at(i);
+					if (i + 1 < num) {
+						out += "\n";
+					}
+				}
+				throw(ParseError(out));
 			}
 			else if (ast.tree == NULL) {
 				throw(ParseError("The lexer returned with errors"));

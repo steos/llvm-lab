@@ -107,6 +107,7 @@ tokens
 
 @parser::preincludes {
 	#include <kensho/error.hpp>
+	#include <boost/lexical_cast.hpp>
 	char* antlrTokenName(int type);
 }
 
@@ -115,29 +116,21 @@ tokens
 	#include <vector>
 	#include <cassert>
 	#include <iostream>
-	
-	extern "C" void kenshoAntlrErrorReporter(pANTLR3_BASE_RECOGNIZER rec, pANTLR3_UINT8* tokens);
+	void kenshoAntlrErrorReporter(pANTLR3_BASE_RECOGNIZER rec, pANTLR3_UINT8* tokens);
+}
+
+@parser::context {
+	std::vector<std::string>* errors;
 }
 
 @parser::apifuncs {
 	RECOGNIZER->displayRecognitionError = kenshoAntlrErrorReporter;
+	PARSER->super = (void*)ctx;
+	ctx->errors = new std::vector<std::string>();
 }
 
 @parser::members
 {
-	extern "C" void kenshoAntlrErrorReporter(pANTLR3_BASE_RECOGNIZER rec, pANTLR3_UINT8* tokens) {
-		assert(rec->state->exception->message != NULL);
-	
-		std::string err((char*)rec->state->exception->message);
-		std::string exp(antlrTokenName(rec->state->exception->expecting));
-		
-		throw(kensho::ParseError(
-			err + ", expected " + exp, 
-			rec->state->exception->line,
-			rec->state->exception->charPositionInLine
-		));
-	}
-
 	char* antlrTokenName(int type) {
 		return (char*)KenshoParserTokenNames[type];
 	}
