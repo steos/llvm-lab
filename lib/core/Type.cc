@@ -16,29 +16,28 @@
 #include <kensho/ast/Type.hpp>
 #include <kensho/ast/ModuleBuilder.hpp>
 #include <kensho/ast/Struct.hpp>
-
-#include <antlr.hpp>
+#include <kensho/error.hpp>
 
 using namespace kensho;
 
-	const llvm::Type* mapToLLVM(uint32_t type) {
+	const llvm::Type* mapToLLVM(int32_t type) {
 		switch (type) {
-			case T_VOID:
+			case ast::TyVoid:
 				return llvm::Type::VoidTy;
-			case T_BOOL:
+			case ast::TyBool:
 				return llvm::Type::Int1Ty;
-			case T_BYTE:
+			case ast::TyByte:
 				return llvm::Type::Int8Ty;
-			case T_SHORT:
+			case ast::TyShort:
 				return llvm::Type::Int16Ty;
-			case T_INT:
-			case T_CHAR:
+			case ast::TyInt:
+			case ast::TyChar:
 				return llvm::Type::Int32Ty;
-			case T_LONG:
+			case ast::TyLong:
 				return llvm::Type::Int64Ty;
-			case T_FLOAT:
+			case ast::TyFloat:
 				return llvm::Type::FloatTy;
-			case T_DOUBLE:
+			case ast::TyDouble:
 				return llvm::Type::DoubleTy;
 		}
 
@@ -46,17 +45,17 @@ using namespace kensho;
 	}
 
 	bool ast::Type::isVoid() {
-		return ( token != -1 && token == T_VOID ) ||
+		return ( token != -1 && token == ast::TyVoid ) ||
 			( llvmType != NULL && llvmType == llvm::Type::VoidTy );
 	}
 
 	bool ast::Type::isPrimitive() {
-		return (token != -1 && token != ID) ||
+		return (token != -1 && token != ast::TyPtr) ||
 			( llvmType != NULL && llvmType->isPrimitiveType());
 	}
 
 	void ast::Type::assemble() {
-		if (token == -1 || token == ID) {
+		if (token == -1 || token == ast::TyPtr) {
 			Type* userType = mb.getUserType(name);
 			if (userType == NULL) {
 				throw(ParseError("undeclared type " + name));

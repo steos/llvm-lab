@@ -16,8 +16,7 @@
 #include <kensho/ast/UnaryExpression.hpp>
 #include <kensho/ast/Literal.hpp>
 #include <kensho/ast/ModuleBuilder.hpp>
-
-#include <antlr.hpp>
+#include <kensho/ast/tokens.hpp>
 
 using namespace kensho;
 
@@ -26,10 +25,10 @@ using namespace kensho;
 		// if the expression is a literal float or integer
 		// and the unary operator is a + or - it's not an operator
 		// but simply a sign so we must treat it as a literal
-		if (lit != NULL && (lit->getTokenType() == LITERAL_INT
-			|| lit->getTokenType() == LITERAL_FLOAT)
-			&& (token == OP_ADD || token == OP_SUB)) {
-			if (token == OP_SUB) {
+		if (lit != NULL && (lit->getTokenType() == LitInt
+			|| lit->getTokenType() == LitFloat)
+			&& (token == OpAdd || token == OpSub)) {
+			if (token == OpSub) {
 				std::string& text = lit->getText();
 				text.insert(text.begin(), '-');
 			}
@@ -38,10 +37,10 @@ using namespace kensho;
 		}
 		else {
 			llvm::Value* val = expression->emit(mb);
-			if (token == OP_NOT || token == OP_BIT_NOT) {
+			if (token == OpNot || token == OpBitNot) {
 				value = mb.getIRBuilder().CreateNot(val, "not");
 			}
-			else if (token == OP_SUB) {
+			else if (token == OpSub) {
 				// sub from 0 depending on type
 				value = mb.getIRBuilder().CreateNeg(val, "neg");
 			}

@@ -15,12 +15,11 @@
 
 #include <kensho/ast/BinaryExpression.hpp>
 #include <kensho/ast/VariableDefinition.hpp>
+#include <kensho/ast/Variable.hpp>
 #include <kensho/ast/ModuleBuilder.hpp>
 #include <kensho/error.hpp>
 
 #include <llvm/Value.h>
-
-#include <antlr.hpp>
 
 using namespace kensho;
 
@@ -33,7 +32,7 @@ using namespace kensho;
 		typeRight = valRight->getType();
 
 		// special handling for assignment
-		if (token == OP_ASSIGN) {
+		if (token == OpAssign) {
 			Variable* var = dynamic_cast<Variable*>(left);
 			if (var == NULL) {
 				throw(ParseError("can only assign to variables",

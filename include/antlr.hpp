@@ -17,17 +17,27 @@
 #define ANTLR_HPP_
 
 #include <string>
+#include <kensho/Parser.hpp>
 
 // Must include TreeParser first because
-// it includes ast.hpp and this in turn includes
+// it includes ast headers and those include
 // llvm headers. Otherwise antlr3.h gets included
 // before the llvm headers and this messes everything up, i.e.
 // you'll get compile errors that look like types are missing
 // from the llvm headers (antlr3c obviously redefines some
 // vital stuff for whatever idiotic reason...)
 #include <KenshoTreeParser.h>
-#include <KenshoLexer.h>
 #include <KenshoParser.h>
+#include <KenshoLexer.h>
+
+void kenshoAntlrErrorReporter(
+	pANTLR3_BASE_RECOGNIZER rec, pANTLR3_UINT8* tokens);
+
+// forward declare ModuleBuilder class
+namespace kensho {
+namespace ast {
+	class ModuleBuilder;
+}}
 
 namespace antlr {
 
@@ -43,6 +53,65 @@ namespace antlr {
 	typedef ::KenshoTreeParser_program_return treeast_t;
 	typedef ::pANTLR3_COMMON_TREE_NODE_STREAM nodestream_t;
 
+
+	/*
+	 * antlr implementation of the basic parser interface
+	 */
+	class Parser : public kensho::Parser {
+	private:
+		antlr::istream_t input;
+		antlr::tokstream_t tokenStream;
+		antlr::lexer_t lexer;
+		antlr::parser_t parser;
+		antlr::ast_t ast;
+		antlr::nodestream_t nodestream;
+		antlr::treeparser_t treeparser;
+
+		void free();
+
+		void init(const std::string& file);
+
+		void dumpNode(antlr::node_t node, std::string indent);
+
+		void dumpNode(antlr::node_t node) {
+			dumpNode(node, "");
+		}
+
+		void createTreeParser();
+
+		antlr::treeast_t parseTree();
+	public:
+		Parser() :
+			input(NULL),
+			tokenStream(NULL),
+			lexer(NULL),
+			parser(NULL),
+			nodestream(NULL),
+			treeparser(NULL) {};
+
+		virtual kensho::ast::ModuleBuilder* parse(const std::string& file);
+
+		virtual bool canDumpAST() {
+			return true;
+		}
+
+		virtual void dumpAST() {
+			dumpNode(ast.tree);
+		}
+
+		antlr::lexer_t getLexer() {
+			return lexer;
+		}
+
+		antlr::parser_t getParser() {
+			return parser;
+		}
+
+		virtual ~Parser() {
+			free();
+		}
+	};
+
 	// helper functions
 	inline std::string text(antlr::node_t& node) {
 		int type = node->getType(node);
@@ -56,9 +125,6 @@ namespace antlr {
 		return label;
 	}
 } // end ns
-
-void kenshoAntlrErrorReporter(
-	pANTLR3_BASE_RECOGNIZER rec, pANTLR3_UINT8* tokens);
 
 
 #endif /* ANTLR_HPP_ */

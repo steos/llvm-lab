@@ -17,38 +17,7 @@
 #include <kensho/ast/ModuleBuilder.hpp>
 #include <kensho/error.hpp>
 
-#include <antlr.hpp>
-
 using namespace kensho;
-
-	/*
-	 * converts a token type enum value to a llvm::Type*
-	 */
-	const llvm::Type* ast::toAssemblyType(uint32_t type)
-	{
-		switch (type) {
-			case T_VOID:
-				return llvm::Type::VoidTy;
-			case T_BOOL:
-				return llvm::Type::Int1Ty;
-			case T_BYTE:
-				return llvm::Type::Int8Ty;
-			case T_SHORT:
-				return llvm::Type::Int16Ty;
-			case T_INT:
-			case T_CHAR:
-				return llvm::Type::Int32Ty;
-			case T_LONG:
-				return llvm::Type::Int64Ty;
-			case T_FLOAT:
-				return llvm::Type::FloatTy;
-			case T_DOUBLE:
-				return llvm::Type::DoubleTy;
-		}
-
-		assert(false);
-		return NULL;
-	}
 
 	/*
 	 * tries to cast the given value from the specified

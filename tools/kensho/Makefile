@@ -2,7 +2,7 @@ LEVEL=../..
 
 TOOLNAME = kensho
 
-USEDLIBS = kensho
+USEDLIBS = kensho parser
 
 LINK_COMPONENTS := support system core engine
 

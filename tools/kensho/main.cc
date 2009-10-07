@@ -18,9 +18,10 @@
 #include <string>
 
 #include <kensho/ast/ModuleBuilder.hpp>
+#include <kensho/Parser.hpp>
 
 // always include antlr last!
-#include <kensho/Parser.hpp>
+#include <antlr.hpp>
 
 #ifdef WIN32
 #define KENNI_API extern "C" __declspec(dllexport) __cdecl
@@ -186,25 +187,22 @@
 				return EXIT_USAGE_ERROR;
 			}
 
-			Parser parser(file);
-			antlr::ast_t ast = parser.parse();
+			antlr::Parser parser;
+			ast::ModuleBuilder* builder = parser.parse(file);
 
-			if (op.mode == MODE_DUMP_AST) {
-				parser.dumpNode(ast.tree);
+			if (op.mode == MODE_DUMP_AST && parser.canDumpAST()) {
+				parser.dumpAST();
 				return EXIT_OK;
 			}
 
-			parser.createTreeParser();
-			antlr::treeast_t treeAst = parser.parseTree();
-
-			treeAst.builder->build(op.mem2reg, op.optimize);
+			builder->build(op.mem2reg, op.optimize);
 
 			if (op.mode == MODE_DUMP_IR) {
-				treeAst.builder->getModule()->dump();
+				builder->getModule()->dump();
 				return EXIT_OK;
 			}
 
-			return runJIT(*(treeAst.builder));
+			return runJIT(*builder);
 		}
 		catch (ParseError& e) {
 			std::cerr << e.getMessage();

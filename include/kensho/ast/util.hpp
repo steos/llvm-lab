@@ -23,9 +23,6 @@ namespace kensho {
 namespace ast {
 
 	class ModuleBuilder;
-
-	const llvm::Type* toAssemblyType(uint32_t type);
-
 	llvm::Value* implicitTypeCast(
 		const llvm::Type* src,
 		const llvm::Type* dst,

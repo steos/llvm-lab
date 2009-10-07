@@ -15,6 +15,119 @@
 
 #include <antlr.hpp>
 
+	void antlr::Parser::free() {
+		if (treeparser != NULL) {
+			treeparser->free(treeparser);
+			treeparser = NULL;
+		}
+		if (nodestream != NULL) {
+			nodestream->free(nodestream);
+			nodestream = NULL;
+		}
+		if (parser != NULL) {
+			delete parser->errors;
+			parser->free(parser);
+			parser = NULL;
+		}
+		if (lexer != NULL) {
+			lexer->free(lexer);
+			lexer = NULL;
+		}
+		if (tokenStream != NULL) {
+			tokenStream->free(tokenStream);
+			tokenStream = NULL;
+		}
+		if (input != NULL) {
+			input->close(input);
+			input = NULL;
+		}
+	}
+
+	kensho::ast::ModuleBuilder* antlr::Parser::parse(const std::string& file)
+	{
+		init(file);
+
+		ast = parser->program(parser);
+
+		if (lexer->pLexer->rec->state->errorCount > 0) {
+			throw(kensho::ParseError("The lexer returned with errors"));
+		}
+		if (parser->pParser->rec->state->errorCount > 0) {
+			uint32_t num = parser->errors->size();
+			std::string out;
+			for (uint32_t i = 0; i < num; i++) {
+				out += parser->errors->at(i);
+				if (i + 1 < num) {
+					out += "\n";
+				}
+			}
+			throw(kensho::ParseError(out));
+		}
+		else if (ast.tree == NULL) {
+			throw(kensho::ParseError("The lexer returned with errors"));
+		}
+
+		createTreeParser();
+		treeast_t tree = parseTree();
+		return tree.builder;
+	}
+
+	void antlr::Parser::dumpNode(antlr::node_t node, std::string indent) {
+		if (node == NULL) {
+			std::cout << indent << "[null]\n";
+			return;
+		}
+		if (!node->isNilNode(node)) {
+			std::cout << indent << antlr::text(node) << "\n";
+		}
+		int count = node->getChildCount(node);
+		for (int i = 0; i < count; ++i) {
+			std::string subIndent = indent;
+			subIndent += "  ";
+			dumpNode((antlr::node_t)node->getChild(node, i), subIndent);
+		}
+	}
+
+	void antlr::Parser::init(const std::string& file) {
+		input = antlr3AsciiFileStreamNew((pANTLR3_UINT8)file.c_str());
+		lexer = ::KenshoLexerNew(input);
+		if (lexer == NULL) {
+			free();
+			throw(kensho::Error("out of memory while allocating lexer"));
+		}
+		tokenStream = antlr3CommonTokenStreamSourceNew(
+			ANTLR3_SIZE_HINT, TOKENSOURCE(lexer));
+		if (tokenStream == NULL) {
+			free();
+			throw(kensho::Error("out of memory while allocating parser"));
+		}
+		parser = ::KenshoParserNew(tokenStream);
+		if (parser == NULL) {
+			free();
+			throw(kensho::Error("failed to allocate parser"));
+		}
+	}
+
+	void antlr::Parser::createTreeParser() {
+		nodestream = antlr3CommonTreeNodeStreamNewTree(ast.tree, ANTLR3_SIZE_HINT);
+		if (nodestream == NULL) {
+			throw(kensho::Error("failed to allocate node stream"));
+		}
+		treeparser = KenshoTreeParserNew(nodestream);
+		if (treeparser == NULL) {
+			throw(kensho::Error("failed to allocate tree parser"));
+		}
+	}
+
+	antlr::treeast_t antlr::Parser::parseTree() {
+		antlr::treeast_t ast = treeparser->program(treeparser);
+
+		assert(treeparser->pTreeParser->rec->state->errorCount == 0
+			&& "tree parser returned with errors");
+
+		return ast;
+	}
+
 	void kenshoAntlrErrorReporter(pANTLR3_BASE_RECOGNIZER rec, pANTLR3_UINT8* tokens) {
 		pANTLR3_PARSER parser;
 		pANTLR3_EXCEPTION ex = rec->state->exception;

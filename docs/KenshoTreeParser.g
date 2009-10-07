@@ -24,6 +24,7 @@ options
 }
 
 @preincludes {
+	#include <kensho/ast/tokens.hpp>
 	#include <kensho/ast/Call.hpp>
 	#include <kensho/ast/Variable.hpp>
 	#include <kensho/ast/VariableDefinition.hpp>
@@ -39,13 +40,9 @@ options
 	#include <kensho/ast/Delete.hpp>
 	#include <kensho/ast/Type.hpp>
 	#include <kensho/ast/ModuleBuilder.hpp>
-	#include <kensho/error.hpp>
-	
-	#include <vector>
-}
-
-@includes {
 	#include <kensho/ast/Literal.hpp>
+	#include <kensho/error.hpp>
+	#include <vector>
 }
 
 program returns [kensho::ast::ModuleBuilder* builder] 
@@ -111,7 +108,8 @@ structBodyDecl[kensho::ast::Struct* parent]
 structCtor[std::string parentName] returns [kensho::ast::Function* node]
 @init { uint32_t paramCount = 0; }
 	:	^(CTOR {
-			$node = new kensho::ast::Function("new", $program::mb->createType(T_VOID, ""));
+			$node = new kensho::ast::Function(
+				"new", $program::mb->createType(kensho::ast::TyVoid, ""));
 		}
 			params[$node, paramCount++]* 
 			( statement {
@@ -179,7 +177,7 @@ signature returns [kensho::ast::Function* node]
 	
 functionType returns [kensho::ast::Type* ty]
 	:	T_VOID {
-			$ty = $program::mb->createType(T_VOID, "");
+			$ty = $program::mb->createType(kensho::ast::TyVoid, "");
 		} 
 	| 	type { $ty = $type.ty; }
 	;	
@@ -283,25 +281,26 @@ variable returns [kensho::ast::VariableDefinition* node]
 	;
 	
 type returns [kensho::ast::Type* ty]
+@init {
+	kensho::ast::TypeToken tt;
+}
 @after	{
 	std::string text;
 	pANTLR3_STRING str = $type.tree->getText($type.tree);
 	if (str != NULL) {
 		text = std::string((char*)str->chars); 
 	}
-	$ty = $program::mb->createType(
-		$type.tree->getType($type.tree), text
-	);
+	$ty = $program::mb->createType(tt, text);
 }
-	:	T_BOOL
-	|	T_BYTE
-	|	T_SHORT
-	|	T_CHAR
-	|	T_INT
-	|	T_LONG
-	|	T_FLOAT
-	|	T_DOUBLE
-	|	ID
+	:	T_BOOL		{ tt = kensho::ast::TyBool; }
+	|	T_BYTE		{ tt = kensho::ast::TyByte; }
+	|	T_SHORT		{ tt = kensho::ast::TyShort; }
+	|	T_CHAR		{ tt = kensho::ast::TyChar; }
+	|	T_INT		{ tt = kensho::ast::TyInt; }
+	|	T_LONG		{ tt = kensho::ast::TyLong; }
+	|	T_FLOAT		{ tt = kensho::ast::TyFloat; }
+	|	T_DOUBLE	{ tt = kensho::ast::TyDouble; }
+	|	ID			{ tt = kensho::ast::TyPtr; }
 	;
 
 expression returns [kensho::ast::Node* node]
@@ -322,18 +321,18 @@ expression returns [kensho::ast::Node* node]
 		}
 	|	^(UNOP unop unex=expression) {
 			pANTLR3_COMMON_TOKEN tok = $unop.tree->getToken($unop.tree);
-			$node = new kensho::ast::UnaryExpression(tok->getType(tok), $unex.node); 
+			$node = new kensho::ast::UnaryExpression($unop.op, $unex.node); 
 			$node->setSourcePosition(tok->getLine(tok), tok->getCharPositionInLine(tok));
 		}
 	|	^(CAST type castex=expression) {
 			pANTLR3_COMMON_TOKEN tok = $type.tree->getToken($type.tree);
-			$node = new kensho::ast::Cast(tok->getType(tok), $castex.node);
+			$node = new kensho::ast::Cast($type.ty, $castex.node);
 			$node->setSourcePosition(tok->getLine(tok), tok->getCharPositionInLine(tok));
 		}
 	|	^(BINOP binop left=expression right=expression) {
 			pANTLR3_COMMON_TOKEN tok = $binop.tree->getToken($binop.tree);
 			$node = new kensho::ast::BinaryExpression(
-				tok->getType(tok), $left.node, $right.node
+				$binop.op, $left.node, $right.node
 			);
 			$node->setSourcePosition(tok->getLine(tok), tok->getCharPositionInLine(tok));
 		}
@@ -366,51 +365,52 @@ ctorCall returns [kensho::ast::ConstructorCall* node]
 	;
 
 literal returns [kensho::ast::Literal* node]
+@init {
+	kensho::ast::LiteralToken lt;
+}
 @after
 {
 	pANTLR3_COMMON_TOKEN token = $literal.tree->getToken($literal.tree);
 	$node = new kensho::ast::Literal(
-		$literal.tree->getType($literal.tree),
-		std::string((char*)token->getText(token)->chars)
+		lt, std::string((char*)token->getText(token)->chars)
 	);
 	$node->setSourcePosition(token->getLine(token), token->getCharPositionInLine(token));
 }
-	:	LITERAL_INT
-	|	LITERAL_OCT
-	|	LITERAL_HEX
-	|	LITERAL_FLOAT
-	|	LITERAL_TRUE
-	|	LITERAL_FALSE
-	|	LITERAL_CHAR
+	:	LITERAL_INT 	{ lt = kensho::ast::LitInt; }
+	|	LITERAL_OCT		{ lt = kensho::ast::LitOct; }
+	|	LITERAL_HEX		{ lt = kensho::ast::LitHex; }
+	|	LITERAL_FLOAT	{ lt = kensho::ast::LitFloat; }
+	|	LITERAL_TRUE	{ lt = kensho::ast::LitTrue; }
+	|	LITERAL_FALSE	{ lt = kensho::ast::LitFalse; }
+	|	LITERAL_CHAR	{ lt = kensho::ast::LitChar; }
 	;
 	
-unop
-	:	OP_ADD 
-	| 	OP_SUB 
-	| 	OP_NOT 
-	| 	OP_BIT_NOT
+unop returns [kensho::ast::OperatorToken op]
+	:	OP_ADD 			{ $op = kensho::ast::OpAdd; }
+	| 	OP_SUB 			{ $op = kensho::ast::OpSub; }
+	| 	OP_NOT 			{ $op = kensho::ast::OpNot; }
+	| 	OP_BIT_NOT		{ $op = kensho::ast::OpBitNot; }
 	;
 	
-binop
-	:	OP_ADD 
-	| 	OP_SUB 
-	| 	OP_MUL 
-	| 	OP_DIV
-	|	OP_REM
-	|	OP_ASSIGN
-	|	OP_AND
-	|	OP_OR
-	|	OP_XOR
-	|	OP_BIT_AND
-	|	OP_BIT_OR
-	|	OP_SHIFT_L
-	|	OP_SHIFT_R
-	|	OP_USHIFT_R
-	|	OP_USHIFT_L
-	|	CMP_EQ
-	|	CMP_NEQ
-	|	CMP_GT
-	|	CMP_GTE
-	|	CMP_LT
-	|	CMP_LTE
+binop returns [kensho::ast::OperatorToken op]
+	:	OP_ADD 			{ $op = kensho::ast::OpAdd; }
+	| 	OP_SUB 			{ $op = kensho::ast::OpSub; }
+	| 	OP_MUL 			{ $op = kensho::ast::OpMul; }
+	| 	OP_DIV			{ $op = kensho::ast::OpDiv; }
+	|	OP_REM			{ $op = kensho::ast::OpRem; }
+	|	OP_ASSIGN		{ $op = kensho::ast::OpAssign; }
+	|	OP_AND			{ $op = kensho::ast::OpAnd; }
+	|	OP_OR			{ $op = kensho::ast::OpOr; }
+	|	OP_XOR			{ $op = kensho::ast::OpXor; }
+	|	OP_BIT_AND		{ $op = kensho::ast::OpBitAnd; }
+	|	OP_BIT_OR		{ $op = kensho::ast::OpBitOr; }
+	|	OP_SHIFT_L		{ $op = kensho::ast::OpShiftL; }
+	|	OP_SHIFT_R		{ $op = kensho::ast::OpShiftR; }
+	|	OP_USHIFT_R		{ $op = kensho::ast::OpUShiftR; }
+	|	CMP_EQ			{ $op = kensho::ast::OpEq; }
+	|	CMP_NEQ			{ $op = kensho::ast::OpNeq; }
+	|	CMP_GT			{ $op = kensho::ast::OpGt; }
+	|	CMP_GTE			{ $op = kensho::ast::OpGte; }
+	|	CMP_LT			{ $op = kensho::ast::OpLt; }
+	|	CMP_LTE			{ $op = kensho::ast::OpLte; }
 	;

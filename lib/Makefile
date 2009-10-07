@@ -1,5 +1,5 @@
 LEVEL=..
 
-DIRS = core
+DIRS = core parser
 
 include $(LEVEL)/Makefile.common

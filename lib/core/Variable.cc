@@ -18,8 +18,6 @@
 #include <kensho/ast/ModuleBuilder.hpp>
 #include <kensho/error.hpp>
 
-#include <antlr.hpp>
-
 using namespace kensho;
 
 	void ast::Variable::assemble(ast::ModuleBuilder& mb) {

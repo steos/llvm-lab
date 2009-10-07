@@ -17,7 +17,7 @@
 #define KENSHO_AST_CAST_HPP_
 
 #include <kensho/ast/Node.hpp>
-#include <kensho/ast/util.hpp>
+#include <kensho/ast/Type.hpp>
 
 namespace kensho {
 namespace ast {
@@ -27,17 +27,13 @@ namespace ast {
 	 */
 	class Cast : public Node {
 	private:
-		int32_t type;
-		const llvm::Type* assemblyType;
+		Type* type;
 		Node* expression;
 	protected:
 		virtual void assemble(ModuleBuilder& mb);
 	public:
-		Cast(int32_t type, Node* expression) :
-			type(type), expression(expression) {
-			assemblyType = toAssemblyType(type);
-			assert(assemblyType != NULL);
-		};
+		Cast(Type* type, Node* expression) :
+			type(type), expression(expression) {};
 	};
 
 

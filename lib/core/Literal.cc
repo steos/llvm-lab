@@ -16,21 +16,20 @@
 #include <kensho/ast/Literal.hpp>
 #include <llvm/Type.h>
 #include <llvm/Constants.h>
+#include <llvm/Support/IRBuilder.h>
 #include <boost/lexical_cast.hpp>
-
-#include <antlr.hpp>
 
 using namespace kensho;
 
 	void ast::Literal::assemble(ast::ModuleBuilder& mb) {
 		switch (tokenType) {
-			case LITERAL_TRUE:
+			case LitTrue:
 				value = llvm::ConstantInt::get(llvm::Type::Int1Ty, 1);
 				break;
-			case LITERAL_FALSE:
+			case LitFalse:
 				value = llvm::ConstantInt::get(llvm::Type::Int1Ty, 0);
 				break;
-			case LITERAL_INT: {
+			case LitInt: {
 				bool isLong = hasLongSuffix(text);
 				const llvm::Type* type = isLong ?
 						llvm::Type::Int64Ty : llvm::Type::Int32Ty;
@@ -43,7 +42,7 @@ using namespace kensho;
 				);
 				break;
 			}
-			case LITERAL_FLOAT: {
+			case LitFloat: {
 				bool isFloat = hasFloatSuffix(text);
 				const llvm::Type* type = hasFloatSuffix(text) ?
 						llvm::Type::FloatTy : llvm::Type::DoubleTy;
@@ -59,17 +58,17 @@ using namespace kensho;
 				);
 				break;
 			}
-			case LITERAL_HEX:
-			case LITERAL_OCT: {
+			case LitHex:
+			case LitOct: {
 				long int val = std::strtol(
 					text.c_str(),
 					NULL,
-					tokenType == LITERAL_HEX ? 16 : 8
+					tokenType == LitHex ? 16 : 8
 				);
 				value = llvm::ConstantInt::get(llvm::Type::Int32Ty, val, true);
 				break;
 			}
-			case LITERAL_CHAR: {
+			case LitChar: {
 				char c = text[1];
 				if (c == '\\') {
 					switch (text[2]) {

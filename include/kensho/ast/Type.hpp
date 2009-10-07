@@ -16,6 +16,7 @@
 #ifndef KENSHO_AST_TYPE_HPP_
 #define KENSHO_AST_TYPE_HPP_
 
+#include <kensho/ast/tokens.hpp>
 #include <llvm/Type.h>
 
 namespace kensho {
@@ -34,7 +35,7 @@ namespace ast {
 
 	public:
 
-		Type(ModuleBuilder& mb, int32_t token, std::string name) :
+		Type(ModuleBuilder& mb, TypeToken token, std::string name) :
 			mb(mb), llvmType(NULL), token(token), name(name) {
 			assert(token != -1);
 		};

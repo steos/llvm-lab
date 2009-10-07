@@ -20,8 +20,6 @@
 #include <kensho/ast/util.hpp>
 #include <llvm/TypeSymbolTable.h>
 
-#include <antlr.hpp>
-
 using namespace kensho;
 
 	void ast::VariableDefinition::assemble(ast::ModuleBuilder& mb) {

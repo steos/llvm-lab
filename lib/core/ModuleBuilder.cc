@@ -24,8 +24,6 @@
 #include <llvm/Target/TargetData.h>
 #include <llvm/Transforms/Scalar.h>
 
-#include <antlr.hpp>
-
 using namespace kensho;
 
 	void ast::ModuleBuilder::declareSymbol(ast::VariableDefinition* symbol) {
@@ -94,46 +92,46 @@ using namespace kensho;
 	}
 
 	llvm::Value* ast::ModuleBuilder::createBinaryOperator(
-		uint32_t type, llvm::Value* left, llvm::Value* right)
+		OperatorToken type, llvm::Value* left, llvm::Value* right)
 	{
 		switch (type) {
-			case OP_ADD:
+			case OpAdd:
 				return irBuilder.CreateAdd(left, right, "add");
-			case OP_SUB:
+			case OpSub:
 				return irBuilder.CreateSub(left, right, "sub");
-			case OP_MUL:
+			case OpMul:
 				return irBuilder.CreateMul(left, right, "mul");
-			case OP_DIV:
+			case OpDiv:
 				return irBuilder.CreateSDiv(left, right, "div");
-			case OP_AND:
-			case OP_BIT_AND:
+			case OpAnd:
+			case OpBitAnd:
 				return irBuilder.CreateAnd(left, right, "and");
-			case OP_OR:
-			case OP_BIT_OR:
+			case OpOr:
+			case OpBitOr:
 				return irBuilder.CreateOr(left, right, "or");
-			case OP_XOR:
+			case OpXor:
 				return irBuilder.CreateXor(left, right, "xor");
 
-			case CMP_EQ:
+			case OpEq:
 				return irBuilder.CreateICmpEQ(left, right, "eq");
-			case CMP_NEQ:
+			case OpNeq:
 				return irBuilder.CreateICmpNE(left, right, "neq");
-			case CMP_LT:
+			case OpLt:
 				return irBuilder.CreateICmpSLT(left, right, "lt");
-			case CMP_LTE:
+			case OpLte:
 				return irBuilder.CreateICmpSLE(left, right, "lte");
-			case CMP_GT:
+			case OpGt:
 				return irBuilder.CreateICmpSGT(left, right, "gt");
-			case CMP_GTE:
+			case OpGte:
 				return irBuilder.CreateICmpSGE(left, right, "gte");
 
-			case OP_SHIFT_L:
+			case OpShiftL:
 				return irBuilder.CreateShl(left, right, "shl");
-			case OP_SHIFT_R:
+			case OpShiftR:
 				return irBuilder.CreateLShr(left, right, "lshr");
-			case OP_USHIFT_R:
+			case OpUShiftR:
 				return irBuilder.CreateAShr(left, right, "ashr");
-			case OP_REM:
+			case OpRem:
 				return irBuilder.CreateSRem(left, right, "rem");
 
 			default:

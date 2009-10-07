@@ -16,6 +16,7 @@
 #ifndef KENSHO_AST_UNARYEXPRESSION_HPP_
 #define KENSHO_AST_UNARYEXPRESSION_HPP_
 
+#include <kensho/ast/tokens.hpp>
 #include <kensho/ast/Node.hpp>
 
 namespace kensho {
@@ -26,12 +27,12 @@ namespace ast {
 	 */
 	class UnaryExpression : public Node {
 	private:
-		uint32_t token;
+		OperatorToken token;
 		Node* expression;
 	protected:
 		virtual void assemble(ModuleBuilder&);
 	public:
-		UnaryExpression(uint32_t token, Node* expression) :
+		UnaryExpression(OperatorToken token, Node* expression) :
 			token(token), expression(expression) {};
 	};
 

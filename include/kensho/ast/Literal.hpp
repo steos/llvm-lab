@@ -17,6 +17,7 @@
 #define KENSHO_AST_LITERAL_HPP_
 
 #include <kensho/ast/Node.hpp>
+#include <kensho/ast/tokens.hpp>
 
 namespace kensho {
 namespace ast {
@@ -26,13 +27,13 @@ namespace ast {
 	 */
 	class Literal : public Node {
 	private:
-		uint32_t tokenType;
+		LiteralToken tokenType;
 		std::string text;
 	protected:
 		virtual void assemble(ModuleBuilder& mb);
 	public:
-		Literal(uint32_t tokenType, std::string text) : tokenType(tokenType), text(text) {};
-		uint32_t getTokenType() {
+		Literal(LiteralToken tokenType, std::string text) : tokenType(tokenType), text(text) {};
+		LiteralToken getTokenType() {
 			return tokenType;
 		}
 		std::string& getText() {

@@ -4,5 +4,4 @@ LIBRARYNAME = kensho
 
 include $(LEVEL)/Makefile.common
 
-CXXFLAGS += -I/usr/local/include -I/usr/local/include/boost -fexceptions
-LDFLAGS += -lantlr3c
+CXXFLAGS += -I/usr/local/include/boost -fexceptions

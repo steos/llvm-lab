@@ -20,6 +20,7 @@
 using namespace kensho;
 
 	void ast::Cast::assemble(ast::ModuleBuilder& mb) {
+		const llvm::Type* assemblyType = type->getAssemblyType();
 		// emit expression to cast
 		llvm::Value* val = expression->emit(mb);
 		// do nothing if types match

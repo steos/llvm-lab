@@ -20,8 +20,6 @@
 #include <llvm/AbstractTypeUser.h>
 #include <llvm/DerivedTypes.h>
 
-#include <antlr.hpp>
-
 using namespace kensho;
 
 	void ast::Struct::assemble(ModuleBuilder& mb) {

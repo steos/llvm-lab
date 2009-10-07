@@ -17,6 +17,7 @@
 #define KENSHO_AST_BINARYEXPRESSION_HPP_
 
 #include <kensho/ast/Node.hpp>
+#include <kensho/ast/tokens.hpp>
 
 namespace kensho {
 namespace ast {
@@ -26,13 +27,13 @@ namespace ast {
 	 */
 	class BinaryExpression : public Node {
 	private:
-		uint32_t token;
+		OperatorToken token;
 		Node* left;
 		Node* right;
 	protected:
 		virtual void assemble(ModuleBuilder&);
 	public:
-		BinaryExpression(uint32_t token, Node* left, Node* right) :
+		BinaryExpression(OperatorToken token, Node* left, Node* right) :
 			token(token), left(left), right(right) {};
 
 		Node* getLeft() {

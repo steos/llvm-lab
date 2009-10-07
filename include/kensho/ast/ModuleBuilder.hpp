@@ -16,6 +16,7 @@
 #ifndef KENSHO_AST_MODULEBUILDER_HPP_
 #define KENSHO_AST_MODULEBUILDER_HPP_
 
+#include <kensho/ast/tokens.hpp>
 #include <kensho/Scope.hpp>
 #include <kensho/ast/Type.hpp>
 
@@ -69,7 +70,7 @@ namespace ast {
 			structs.push_back(st);
 		}
 
-		Type* createType(uint32_t token, std::string name) {
+		Type* createType(TypeToken token, std::string name) {
 			return new Type(*this, token, name);
 		}
 
@@ -100,7 +101,7 @@ namespace ast {
 		void build(bool mem2reg, bool optimize);
 
 		llvm::Value* createBinaryOperator(
-			uint32_t type, llvm::Value* left, llvm::Value* right);
+			OperatorToken type, llvm::Value* left, llvm::Value* right);
 
 		llvm::ExecutionEngine* getEngine();
 
