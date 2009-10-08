@@ -13,44 +13,44 @@
  * along with Kensho.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <kensho/ast/BinaryExpression.hpp>
-#include <kensho/ast/VariableDefinition.hpp>
+#include <kensho/ast/Assignment.hpp>
 #include <kensho/ast/Variable.hpp>
+#include <kensho/ast/VariableDefinition.hpp>
 #include <kensho/ast/ModuleBuilder.hpp>
 #include <kensho/error.hpp>
 
-#include <llvm/Value.h>
-
 using namespace kensho;
 
-	void ast::BinaryExpression::assemble(ast::ModuleBuilder& mb) {
-		const llvm::Type* typeLeft = NULL;
+	void ast::Assignment::assemble(ModuleBuilder& mb) {
 		const llvm::Type* typeRight = NULL;
 
 		// emit right side
 		llvm::Value* valRight = right->emit(mb);
 		typeRight = valRight->getType();
-		llvm::Value* valLeft = left->emit(mb);
-		typeLeft = valLeft->getType();
 
-		if (typeLeft != typeRight) {
+		Variable* var = dynamic_cast<Variable*>(left);
+		if (var == NULL) {
+			throw(ParseError("can only assign to variables",
+				getLine(), getOffset()));
+		}
+		if (!mb.isDeclared(var->getName())) {
+			throw(ParseError("variable " + var->getName() + " is not declared",
+				getLine(), getOffset()));
+		}
+		VariableDefinition* vardef = dynamic_cast<VariableDefinition*>(
+			mb.getSymbol(var->getName()));
+		assert(vardef != NULL);
+		if (vardef->getType()->getAssemblyType() != typeRight) {
 			try {
-				llvm::Value* castval = NULL;
-				if (typeLeft < typeRight) {
-					castval = implicitTypeCast(
-						typeLeft, typeRight, valLeft, mb);
-				}
-				else if (typeLeft > typeRight) {
-					castval = implicitTypeCast(
-						typeRight, typeLeft, valRight, mb);
-				}
-				assert(castval != NULL);
-				valRight = castval;
+				llvm::Value* castVal = implicitTypeCast(
+					typeRight, vardef->getType()->getAssemblyType(), valRight, mb);
+
+				assert(castVal != NULL);
+				valRight = castVal;
 			}
 			catch (ParseError& err) {
 				throw(ParseError(err.getMessage(), getLine(), getOffset()));
 			}
 		}
-
-		value = mb.createBinaryOperator(token, valLeft, valRight);
+		value = mb.getIRBuilder().CreateStore(valRight, vardef->getValue());
 	}

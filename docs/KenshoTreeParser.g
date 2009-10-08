@@ -41,6 +41,7 @@ options
 	#include <kensho/ast/Type.hpp>
 	#include <kensho/ast/ModuleBuilder.hpp>
 	#include <kensho/ast/Literal.hpp>
+	#include <kensho/ast/Assignment.hpp>
 	#include <kensho/error.hpp>
 	#include <vector>
 }
@@ -331,9 +332,14 @@ expression returns [kensho::ast::Node* node]
 		}
 	|	^(BINOP binop left=expression right=expression) {
 			pANTLR3_COMMON_TOKEN tok = $binop.tree->getToken($binop.tree);
-			$node = new kensho::ast::BinaryExpression(
-				$binop.op, $left.node, $right.node
-			);
+			if ($binop.op == kensho::ast::OpAssign) {
+				$node = new kensho::ast::Assignment($left.node, $right.node);
+			}
+			else {
+				$node = new kensho::ast::BinaryExpression(
+					$binop.op, $left.node, $right.node
+				);
+			}
 			$node->setSourcePosition(tok->getLine(tok), tok->getCharPositionInLine(tok));
 		}
 	;	

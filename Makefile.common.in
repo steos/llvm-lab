@@ -26,7 +26,7 @@ include $(LLVM_OBJ_ROOT)/Makefile.common
 G_SRC = $(PROJ_SRC_ROOT)/docs
 G_OUT = $(PROJ_SRC_ROOT)/docs/temp
 G_DST_H = $(PROJ_SRC_ROOT)/include/
-G_DST_C = $(PROJ_SRC_ROOT)/lib/core/
+G_DST_C = $(PROJ_SRC_ROOT)/lib/parser/
 
 grammar:	 
 	 @sh $(PROJ_SRC_ROOT)/update-grammar.sh $(G_SRC) $(G_OUT) $(G_DST_C) $(G_DST_H)
