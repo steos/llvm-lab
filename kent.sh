@@ -14,24 +14,36 @@
 # along with Kensho.  If not, see <http://www.gnu.org/licenses/>.
 
  BASEDIR="" 
- 
+ TYPE=""
  if test ! -d "Release/bin" ; then
  	if test ! -d "Debug/bin" ; then
- 		echo " no kensho build directory found"
+ 		echo "Error: no kensho build directory found. Expected to find"
+ 		echo "Release/bin or Debug/bin in current directory."
  		exit 1
  	else
- 		echo " Info: using Debug build"
+ 		TYPE="Debug"
  		BASEDIR="Debug/bin"
  	fi
  else
- 	echo " Info: using Release build"
+ 	TYPE="Release"
  	BASEDIR="Release/bin"
  fi
  
  KENSHO="$BASEDIR/kensho"
  
+ # try to invoke the executable
+ $KENSHO 2>&1 > /dev/null
+ 
+ # if we couldn't invoke the executable bail out with error
+ if test $? -ne 0 ; then 
+ 	echo "Error: couldn't execute $KENSHO. Expected to find executable"
+ 	echo "kensho in $BASEDIR."
+ 	exit 1
+ fi
+ 
  if test ! -d "test" ; then
- 	echo " no test directory found"
+ 	echo "Error: no test directory found. Expected to find ./test"
+ 	echo "in current directory."
  	exit 1
  fi
  
@@ -40,16 +52,19 @@
  successCount=0
  skipCount=0
  
+ echo " Running tests using $TYPE build ($BASEDIR)"
  echo " =========================================================="
  
  for s in `ls ./test/*.ks` ; do
  	OUT=`echo $s | sed -e 's/.ks/.out/g'`
+ 	testCount=`expr $testCount + 1`
+ 	FILENAME=`echo $s | sed -e 's/.\/test\///g'`
+ 	printf ' %02d: %-47s' $testCount $FILENAME
  	if test ! -f $OUT ; then
- 		echo " Skipping $s because of missing *.out file"
+ 		echo "SKIPPED"
+ 		printf "%59s\n" 'because of missing *.out file'
  		skipCount=`expr $skipCount + 1`
  	else
- 		testCount=`expr $testCount + 1`
- 		printf ' Running %-43s' $s
 	  	TMP=`echo $s | sed -e 's/.ks/.tmp/g'`
 	  	DIFFTMP="$TMP.diff"
 	 	$KENSHO $s > $TMP 2>&1
