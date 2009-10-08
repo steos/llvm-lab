@@ -26,7 +26,7 @@ using namespace kensho;
 				getLine(), getOffset()));
 		}
 
-		VariableDefinition* var = mb.getSymbol(name);
+		Symbol* var = mb.getSymbol(name);
 		assert(var != NULL);
 
 		value = mb.getIRBuilder().CreateLoad(var->getValue(), name.c_str());

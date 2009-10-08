@@ -16,8 +16,7 @@
 #ifndef KENSHO_AST_CALLABLE_HPP_
 #define KENSHO_AST_CALLABLE_HPP_
 
-#include <kensho/ast/Node.hpp>
-#include <kensho/ast/Type.hpp>
+#include <kensho/ast/Symbol.hpp>
 
 #include <kensho/ast/util.hpp>
 #include <llvm/Type.h>
@@ -29,23 +28,19 @@ namespace ast {
 	 * Base class for nodes that result in a callable
 	 * function, i.e. captures the name, return type and parameter types
 	 */
-	class Callable : public Node {
+	class Callable : public Symbol {
 	protected:
-		std::string name;
-		Type* type;
 		std::vector<Type*> parameterTypes;
 		virtual void assemble(ModuleBuilder& mb);
 	public:
 		Callable(std::string name, Type* type) :
-			name(name), type(type) {};
+			Symbol(name, type) {};
 		virtual void emitDefinition(ModuleBuilder& mb);
 		virtual void addParameter(Type* type);
 		virtual void prependParameter(Type*);
 		std::vector<Type*> getParameterTypes();
 		int countParameters();
-		std::string getName();
 		void setName(std::string name);
-		const Type* getType();
 		Type* getParameterType(uint32_t offset);
 		virtual ~Callable() {};
 	};
@@ -53,14 +48,6 @@ namespace ast {
 	inline Type* Callable::getParameterType(uint32_t offset) {
 		assert(offset < parameterTypes.size());
 		return parameterTypes.at(offset);
-	}
-
-	inline const Type* Callable::getType() {
-		return type;
-	}
-
-	inline std::string Callable::getName() {
-		return name;
 	}
 
 	inline void Callable::setName(std::string name) {

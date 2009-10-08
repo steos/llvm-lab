@@ -16,7 +16,7 @@
 #ifndef KENSHO_AST_STRUCT_HPP_
 #define KENSHO_AST_STRUCT_HPP_
 
-#include <kensho/ast/Node.hpp>
+#include <kensho/ast/Buildable.hpp>
 #include <kensho/ast/Function.hpp>
 #include <kensho/ast/VariableDefinition.hpp>
 #include <string>
@@ -28,7 +28,7 @@
 namespace kensho {
 namespace ast {
 
-	class Struct : public Node {
+	class Struct : public Buildable {
 	public:
 		class Function {
 		private:
@@ -93,11 +93,6 @@ namespace ast {
 
 		bool hasDestructor() {
 			return dtorBody.size() > 0;
-		}
-
-		llvm::Value* emit(ModuleBuilder& mb) {
-			assemble(mb);
-			return NULL;
 		}
 
 		std::string getName() {

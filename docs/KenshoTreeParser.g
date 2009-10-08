@@ -292,16 +292,17 @@ type returns [kensho::ast::Type* ty]
 		text = std::string((char*)str->chars); 
 	}
 	$ty = $program::mb->createType(tt, text);
+	$ty->setSourcePosition($t.line, $t.pos);
 }
-	:	T_BOOL		{ tt = kensho::ast::TyBool; }
-	|	T_BYTE		{ tt = kensho::ast::TyByte; }
-	|	T_SHORT		{ tt = kensho::ast::TyShort; }
-	|	T_CHAR		{ tt = kensho::ast::TyChar; }
-	|	T_INT		{ tt = kensho::ast::TyInt; }
-	|	T_LONG		{ tt = kensho::ast::TyLong; }
-	|	T_FLOAT		{ tt = kensho::ast::TyFloat; }
-	|	T_DOUBLE	{ tt = kensho::ast::TyDouble; }
-	|	ID			{ tt = kensho::ast::TyPtr; }
+	:	t=T_BOOL		{ tt = kensho::ast::TyBool; }
+	|	t=T_BYTE		{ tt = kensho::ast::TyByte; }
+	|	t=T_SHORT		{ tt = kensho::ast::TyShort; }
+	|	t=T_CHAR		{ tt = kensho::ast::TyChar; }
+	|	t=T_INT		{ tt = kensho::ast::TyInt; }
+	|	t=T_LONG		{ tt = kensho::ast::TyLong; }
+	|	t=T_FLOAT		{ tt = kensho::ast::TyFloat; }
+	|	t=T_DOUBLE	{ tt = kensho::ast::TyDouble; }
+	|	t=ID			{ tt = kensho::ast::TyPtr; }
 	;
 
 expression returns [kensho::ast::Node* node]

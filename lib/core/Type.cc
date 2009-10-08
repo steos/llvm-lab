@@ -70,7 +70,7 @@ using namespace kensho;
 		if (token == -1 || token == ast::TyPtr) {
 			Type* userType = mb.getUserType(name);
 			if (userType == NULL) {
-				throw(ParseError("undeclared type " + name));
+				throw(ParseError("undeclared type " + name, getLine(), getOffset()));
 			}
 			llvmType = userType->getAssemblyType();
 		}

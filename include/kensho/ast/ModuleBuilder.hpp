@@ -19,6 +19,7 @@
 #include <kensho/ast/tokens.hpp>
 #include <kensho/Scope.hpp>
 #include <kensho/ast/Type.hpp>
+#include <kensho/ast/Symbol.hpp>
 
 #include <llvm/Value.h>
 #include <llvm/Module.h>
@@ -35,7 +36,6 @@ namespace ast {
 	// forward declare referenced ast node classes
 	class Callable;
 	class Struct;
-	class VariableDefinition;
 
 	/*
 	 * The ModuleBuilder class
@@ -48,7 +48,7 @@ namespace ast {
 		llvm::IRBuilder<> irBuilder;
 		std::vector<Callable*> functions;
 		std::vector<ast::Struct*> structs;
-		Scope<VariableDefinition*> symScope;
+		Scope<Symbol*> symScope;
 		Scope<Callable*> funScope;
 		std::map<std::string, Type*> types;
 		llvm::FunctionPassManager* fpm;
@@ -78,7 +78,7 @@ namespace ast {
 			return new Type(*this, ty);
 		}
 
-		void declareSymbol(VariableDefinition* symbol);
+		void declareSymbol(Symbol* symbol);
 
 		void clearSymbolScope();
 
@@ -96,7 +96,7 @@ namespace ast {
 
 		Type* getUserType(std::string name);
 
-		VariableDefinition* getSymbol(std::string name);
+		Symbol* getSymbol(std::string name);
 
 		void build(bool mem2reg, bool optimize);
 
@@ -111,6 +111,11 @@ namespace ast {
 
 		~ModuleBuilder() {};
 	};
+
+
+	inline void ast::ModuleBuilder::declareSymbol(ast::Symbol* symbol) {
+		symScope.addSymbol(symbol->getName(), symbol);
+	}
 
 	inline void ModuleBuilder::clearSymbolScope() {
 		symScope.popAllAndClear();
@@ -140,7 +145,7 @@ namespace ast {
 		return engine;
 	}
 
-	inline VariableDefinition* ModuleBuilder::getSymbol(std::string name) {
+	inline ast::Symbol* ModuleBuilder::getSymbol(std::string name) {
 		return symScope.getSymbol(name);
 	}
 

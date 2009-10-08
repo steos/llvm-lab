@@ -26,10 +26,6 @@
 
 using namespace kensho;
 
-	void ast::ModuleBuilder::declareSymbol(ast::VariableDefinition* symbol) {
-		symScope.addSymbol(symbol->getName(), symbol);
-	}
-
 	void ast::ModuleBuilder::declareFunction(Callable* fun) {
 		funScope.addSymbol(fun->getName(), fun);
 	}

@@ -16,61 +16,39 @@
 #ifndef KENSHO_AST_NODE_HPP_
 #define KENSHO_AST_NODE_HPP_
 
+#include <kensho/ast/Buildable.hpp>
 #include <llvm/Value.h>
 
 namespace kensho {
 namespace ast {
 
-	// forward declare ModuleBuilder
-	class ModuleBuilder;
-
 	/*
-	 * the base class every AST node has to implement
+	 * Node is the base class of all Buildables that result in a
+	 * value, i.e. can be used in an operation like assignment.
 	 */
-	class Node {
+	class Node : public Buildable {
 	protected:
+
+		/*
+		 * the assembly value of this node
+		 */
 		llvm::Value* value;
-		int32_t line;
-		int32_t offset;
-	protected:
-		virtual void assemble(ModuleBuilder&) = 0;
+
 	public:
-		Node() : value(NULL), line(0), offset(0) {};
-		llvm::Value* emit(ModuleBuilder& mb);
-		llvm::Value* getValue();
-		void setSourcePosition(int32_t, int32_t);
-		int32_t getLine();
-		int32_t getOffset();
-		virtual bool isReturnStatement();
-		virtual ~Node() {};
+
+		/*
+		 * retrieves the node value
+		 */
+		llvm::Value* getValue() {
+			return value;
+		}
+
+		virtual llvm::Value* emit(ModuleBuilder& mb) {
+			assemble(mb);
+			assert(value != NULL);
+			return value;
+		}
 	};
-
-	inline bool Node::isReturnStatement() {
-		return false;
-	}
-
-	inline void Node::setSourcePosition(int32_t line, int32_t offset) {
-		this->line = line;
-		this->offset = offset;
-	}
-
-	inline int32_t Node::getLine() {
-		return line;
-	}
-
-	inline int32_t Node::getOffset() {
-		return offset;
-	}
-
-	inline llvm::Value* Node::getValue() {
-		assert(value != NULL);
-		return value;
-	}
-
-	inline llvm::Value* Node::emit(ModuleBuilder& mb) {
-		assemble(mb);
-		return getValue();
-	}
 
 }} // end ns
 

@@ -13,36 +13,52 @@
  * along with Kensho.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef KENSHO_AST_VARIABLEDEFINITION_HPP_
-#define KENSHO_AST_VARIABLEDEFINITION_HPP_
+#ifndef KENSHO_AST_SYMBOL_HPP_
+#define KENSHO_AST_SYMBOL_HPP_
 
-#include <kensho/ast/Symbol.hpp>
-#include <kensho/ast/util.hpp>
+#include <kensho/ast/Type.hpp>
+#include <kensho/ast/Node.hpp>
+#include <llvm/Value.h>
+#include <string>
 
 namespace kensho {
 namespace ast {
 
 	/*
-	 * represents a variable declaration
+	 * Symbol is the base class for every node that
+	 * represents a symbol in the symbol table. It extends
+	 * Node because it has a value.
 	 */
-	class VariableDefinition : public Symbol {
+	class Symbol : public Node {
 	protected:
-		virtual void assemble(ModuleBuilder& mb);
+
+		std::string name;
+		Type* type;
+
 	public:
-		VariableDefinition(std::string name, Type* type) :
-			Symbol(name, type) {};
 
-		void setName(std::string name);
+		/*
+		 * creates a new symbol with the given name and type
+		 */
+		Symbol(std::string name, Type* type) : name(name), type(type) {};
 
+		/*
+		 * retrieves the type of this symbol
+		 */
 		virtual Type* getType() {
 			return type;
 		}
+
+		/*
+		 * retrieves this symbols name
+		 */
+		virtual std::string getName() {
+			return name;
+		}
+
+		virtual ~Symbol() {};
 	};
 
-	inline void VariableDefinition::setName(std::string name) {
-		this->name = name;
-	}
+}}
 
-}} // end ns
-
-#endif /* KENSHO_AST_VARIABLEDEFINITION_HPP_ */
+#endif /* KENSHO_AST_SYMBOL_HPP_ */

@@ -13,36 +13,37 @@
  * along with Kensho.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef KENSHO_AST_VARIABLEDEFINITION_HPP_
-#define KENSHO_AST_VARIABLEDEFINITION_HPP_
+#ifndef KENSHO_AST_SOURCELOCATIONAWARE_HPP_
+#define KENSHO_AST_SOURCELOCATIONAWARE_HPP_
 
-#include <kensho/ast/Symbol.hpp>
-#include <kensho/ast/util.hpp>
+#include <stdint.h>
 
 namespace kensho {
 namespace ast {
 
-	/*
-	 * represents a variable declaration
-	 */
-	class VariableDefinition : public Symbol {
-	protected:
-		virtual void assemble(ModuleBuilder& mb);
+	class SourceLocationAware {
+	private:
+		uint32_t line;
+		uint32_t offset;
 	public:
-		VariableDefinition(std::string name, Type* type) :
-			Symbol(name, type) {};
+		SourceLocationAware() : line(0), offset(0) {};
 
-		void setName(std::string name);
-
-		virtual Type* getType() {
-			return type;
+		uint32_t getLine() {
+			return line;
 		}
-	};
 
-	inline void VariableDefinition::setName(std::string name) {
-		this->name = name;
-	}
+		uint32_t getOffset() {
+			return offset;
+		}
+
+		void setSourcePosition(uint32_t line, uint32_t offset) {
+			this->line = line;
+			this->offset = offset;
+		}
+
+		virtual ~SourceLocationAware() {};
+	};
 
 }} // end ns
 
-#endif /* KENSHO_AST_VARIABLEDEFINITION_HPP_ */
+#endif /* KENSHO_AST_SOURCELOCATIONAWARE_HPP_ */

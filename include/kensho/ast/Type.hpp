@@ -17,6 +17,7 @@
 #define KENSHO_AST_TYPE_HPP_
 
 #include <kensho/ast/tokens.hpp>
+#include <kensho/ast/SourceLocationAware.hpp>
 #include <llvm/Type.h>
 #include <llvm/Value.h>
 
@@ -25,7 +26,7 @@ namespace ast {
 
 	class ModuleBuilder;
 
-	class Type {
+	class Type : public SourceLocationAware {
 	private:
 		ModuleBuilder& mb;
 		const llvm::Type* llvmType;
