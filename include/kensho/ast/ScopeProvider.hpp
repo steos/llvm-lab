@@ -13,20 +13,22 @@
  * along with Kensho.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <kensho/ast/Variable.hpp>
-#include <kensho/ast/VariableDefinition.hpp>
-#include <kensho/ast/ModuleBuilder.hpp>
-#include <kensho/error.hpp>
+#ifndef KENSHO_AST_SYMBOLSCOPE_HPP_
+#define KENSHO_AST_SYMBOLSCOPE_HPP_
 
-using namespace kensho;
+#include <kensho/ast/Scope.hpp>
 
-	void ast::Variable::assemble(ast::ModuleBuilder& mb) {
-		Symbol* var = mb.getSymbolScope().getSymbol(name);
-		if (var == NULL) {
-			throw(ParseError("variable " + name + " is not declared",
-				getLine(), getOffset()));
-		}
-		assert(var != NULL);
+namespace kensho {
+namespace ast {
 
-		value = mb.getIRBuilder().CreateLoad(var->getValue(), name.c_str());
-	}
+	class ScopeProvider {
+	public:
+
+		virtual Scope& getScope() = 0;
+
+		virtual ~ScopeProvider() {};
+	};
+
+}}
+
+#endif /* KENSHO_AST_SYMBOLSCOPE_HPP_ */

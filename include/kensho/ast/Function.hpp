@@ -18,6 +18,7 @@
 
 #include <kensho/ast/Callable.hpp>
 #include <kensho/ast/Type.hpp>
+#include <kensho/ast/ScopeProvider.hpp>
 #include <string>
 #include <vector>
 
@@ -27,11 +28,11 @@ namespace ast {
 	/*
 	 * a function declaration node
 	 */
-	class Function : public Callable {
+	class Function : public Callable, public ScopeProvider {
 	protected:
 		std::vector<std::string> parameterNames;
 		std::vector<Buildable*> body;
-		virtual void assemble(ModuleBuilder& mb);
+		Scope symbols;
 	public:
 		Function(std::string name, Type* type) :
 			Callable(name, type) {};
@@ -40,6 +41,11 @@ namespace ast {
 		virtual void addParameter(std::string name, Type* type);
 		virtual void prependParameter(std::string name, Type* type);
 		void addBodyNode(Buildable*);
+		virtual void assemble(ModuleBuilder& mb);
+
+		virtual Scope& getScope() {
+			return symbols;
+		}
 	};
 
 	inline void Function::prependParameter(std::string name, Type* type) {

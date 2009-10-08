@@ -27,7 +27,7 @@
 using namespace kensho;
 
 	void ast::ModuleBuilder::declareFunction(Callable* fun) {
-		funScope.addSymbol(fun->getName(), fun);
+		funcs[fun->getName()] = fun;
 	}
 
 	void ast::ModuleBuilder::emitDefinitions() {

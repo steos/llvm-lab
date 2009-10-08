@@ -24,7 +24,7 @@ using namespace kensho;
 
 	void ast::VariableDefinition::assemble(ast::ModuleBuilder& mb) {
 		// if a variable with this name already exists bail out
-		if (mb.isDeclared(name)) {
+		if (mb.getSymbolScope().isDeclared(name)) {
 			throw(ParseError("symbol " + name + " is already declared",
 				getLine(), getOffset()));
 		}
@@ -40,5 +40,5 @@ using namespace kensho;
 		mb.getIRBuilder().CreateStore(type->getDefaultValue(), value);
 
 		// declare the variable in the symbol table
-		mb.declareSymbol(this);
+		mb.getSymbolScope().declareSymbol(this);
 	}

@@ -52,7 +52,7 @@ namespace ast {
 		/*
 		 * retrieves this symbols name
 		 */
-		virtual std::string getName() {
+		virtual std::string getName() const {
 			return name;
 		}
 

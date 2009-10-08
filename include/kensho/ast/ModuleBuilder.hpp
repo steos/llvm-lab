@@ -17,10 +17,12 @@
 #define KENSHO_AST_MODULEBUILDER_HPP_
 
 #include <kensho/ast/tokens.hpp>
-#include <kensho/Scope.hpp>
+//#include <kensho/Scope.hpp>
 #include <kensho/ast/Type.hpp>
 #include <kensho/ast/Symbol.hpp>
+#include <kensho/ast/ScopeProvider.hpp>
 
+#include <llvm/ADT/StringMap.h>
 #include <llvm/Value.h>
 #include <llvm/Module.h>
 #include <llvm/Support/IRBuilder.h>
@@ -48,15 +50,18 @@ namespace ast {
 		llvm::IRBuilder<> irBuilder;
 		std::vector<Callable*> functions;
 		std::vector<ast::Struct*> structs;
-		Scope<Symbol*> symScope;
-		Scope<Callable*> funScope;
-		std::map<std::string, Type*> types;
+//		Scope<Symbol*> symScope;
+//		Scope<Callable*> funScope;
+		ScopeProvider* symbolScopeProvider;
+		llvm::StringMap<Type*> types;
+		llvm::StringMap<Callable*> funcs;
+		//std::map<std::string, Type*> types;
 		llvm::FunctionPassManager* fpm;
 		llvm::ExecutionEngine* engine;
 		void initEngine(bool mem2reg, bool optimize);
 		void emitStructFunctionDefinitions();
 	public:
-		ModuleBuilder(std::string name) : module(name) {};
+		ModuleBuilder(std::string name) : module(name), symbolScopeProvider(NULL) {};
 
 		llvm::IRBuilder<>& getIRBuilder();
 
@@ -78,9 +83,22 @@ namespace ast {
 			return new Type(*this, ty);
 		}
 
-		void declareSymbol(Symbol* symbol);
+		void installSymbolScopeProvider(ScopeProvider* sp) {
+			symbolScopeProvider = sp;
+		}
 
-		void clearSymbolScope();
+		void uninstallSymbolScopeProvider() {
+			symbolScopeProvider = NULL;
+		}
+
+		ScopeProvider* getSymbolScopeProvider() {
+			return symbolScopeProvider;
+		}
+
+		Scope& getSymbolScope() {
+			assert(symbolScopeProvider != NULL);
+			return symbolScopeProvider->getScope();
+		}
 
 		void declareFunction(Callable* fun);
 
@@ -88,15 +106,11 @@ namespace ast {
 
 		Callable* getFunction(std::string name);
 
-		bool isDeclared(std::string name);
-
 		void declareUserType(Type*);
 
 		bool isUserTypeDeclared(std::string name);
 
 		Type* getUserType(std::string name);
-
-		Symbol* getSymbol(std::string name);
 
 		void build(bool mem2reg, bool optimize);
 
@@ -112,15 +126,6 @@ namespace ast {
 		~ModuleBuilder() {};
 	};
 
-
-	inline void ast::ModuleBuilder::declareSymbol(ast::Symbol* symbol) {
-		symScope.addSymbol(symbol->getName(), symbol);
-	}
-
-	inline void ModuleBuilder::clearSymbolScope() {
-		symScope.popAllAndClear();
-	}
-
 	inline bool ModuleBuilder::isUserTypeDeclared(std::string name) {
 		return types.count(name) > 0;
 	}
@@ -134,23 +139,15 @@ namespace ast {
 	}
 
 	inline bool ModuleBuilder::isFunctionDeclared(std::string name) {
-		return funScope.hasSymbol(name);
+		return funcs.count(name) > 0;
 	}
 
 	inline Callable* ModuleBuilder::getFunction(std::string name) {
-		return funScope.getSymbol(name);
+		return funcs[name];
 	}
 
 	inline llvm::ExecutionEngine* ModuleBuilder::getEngine() {
 		return engine;
-	}
-
-	inline ast::Symbol* ModuleBuilder::getSymbol(std::string name) {
-		return symScope.getSymbol(name);
-	}
-
-	inline bool ModuleBuilder::isDeclared(std::string name) {
-		return symScope.hasSymbol(name);
 	}
 
 	inline llvm::Module* ModuleBuilder::getModule() {

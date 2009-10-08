@@ -31,6 +31,9 @@ using namespace kensho;
 		assert(numParams == parameterNames.size());
 		assert(numParams == parameterTypes.size());
 
+		// install this function as scope provider
+		mb.installSymbolScopeProvider(this);
+
 		// emit body
 		llvm::BasicBlock* entryBlock = llvm::BasicBlock::Create("entry", fun);
 		mb.getIRBuilder().SetInsertPoint(entryBlock);
@@ -84,6 +87,5 @@ using namespace kensho;
 			}
 		}
 
-		// clear all symbols we declared in this function
-		mb.clearSymbolScope();
+		mb.uninstallSymbolScopeProvider();
 	}

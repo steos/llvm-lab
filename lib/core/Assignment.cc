@@ -33,13 +33,18 @@ using namespace kensho;
 			throw(ParseError("can only assign to variables",
 				getLine(), getOffset()));
 		}
-		if (!mb.isDeclared(var->getName())) {
+
+		Symbol* sym = mb.getSymbolScope().getSymbol(var->getName());
+
+		if (sym == NULL) {
 			throw(ParseError("variable " + var->getName() + " is not declared",
 				getLine(), getOffset()));
 		}
-		VariableDefinition* vardef = dynamic_cast<VariableDefinition*>(
-			mb.getSymbol(var->getName()));
-		assert(vardef != NULL);
+
+		VariableDefinition* vardef = dynamic_cast<VariableDefinition*>(sym);
+
+		assert(vardef != NULL && "can only handle variable definitions");
+
 		if (vardef->getType()->getAssemblyType() != typeRight) {
 			try {
 				llvm::Value* castVal = implicitTypeCast(
@@ -52,5 +57,6 @@ using namespace kensho;
 				throw(ParseError(err.getMessage(), getLine(), getOffset()));
 			}
 		}
+
 		value = mb.getIRBuilder().CreateStore(valRight, vardef->getValue());
 	}
