@@ -28,7 +28,6 @@
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/PassManager.h>
 
-#include <map>
 #include <vector>
 
 namespace kensho {
