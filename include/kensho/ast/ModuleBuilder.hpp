@@ -17,7 +17,6 @@
 #define KENSHO_AST_MODULEBUILDER_HPP_
 
 #include <kensho/ast/tokens.hpp>
-//#include <kensho/Scope.hpp>
 #include <kensho/ast/Type.hpp>
 #include <kensho/ast/Symbol.hpp>
 #include <kensho/ast/ScopeProvider.hpp>
@@ -50,12 +49,9 @@ namespace ast {
 		llvm::IRBuilder<> irBuilder;
 		std::vector<Callable*> functions;
 		std::vector<ast::Struct*> structs;
-//		Scope<Symbol*> symScope;
-//		Scope<Callable*> funScope;
 		ScopeProvider* symbolScopeProvider;
 		llvm::StringMap<Type*> types;
 		llvm::StringMap<Callable*> funcs;
-		//std::map<std::string, Type*> types;
 		llvm::FunctionPassManager* fpm;
 		llvm::ExecutionEngine* engine;
 		void initEngine(bool mem2reg, bool optimize);

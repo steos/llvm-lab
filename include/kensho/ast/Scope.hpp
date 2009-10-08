@@ -25,6 +25,15 @@
 namespace kensho {
 namespace ast {
 
+	/*
+	 * Scope represents a stacked map of symbols
+	 *
+	 * It always has at least one map at the top level and one
+	 * can introduce new scopes or destroy them with the
+	 * push and pop functions. Lookup and retrieval of symbols
+	 * works by simply looping through all maps starting with the
+	 * last one.
+	 */
 	class Scope {
 	private:
 		std::vector<std::map<std::string, Symbol*> > stack;
@@ -34,10 +43,17 @@ namespace ast {
 			stack.push_back(std::map<std::string, Symbol*>());
 		};
 
+		/*
+		 * declares a symbol in the current scope
+		 */
 		void declareSymbol(Symbol* sym) {
 			stack[current][sym->getName()] = sym;
 		}
 
+		/*
+		 * determines if the symbol specified by the given name
+		 * is declared in any scope
+		 */
 		bool isDeclared(const std::string& name) {
 			int32_t last = stack.size() - 1;
 			for (int32_t i = last; i >= 0; --i) {
@@ -48,6 +64,9 @@ namespace ast {
 			return false;
 		}
 
+		/*
+		 * retrieves a symbol specified by the given name
+		 */
 		Symbol* getSymbol(const std::string& name) {
 			int32_t last = stack.size() - 1;
 			for (int32_t i = last; i >= 0; --i) {
@@ -60,6 +79,9 @@ namespace ast {
 			return NULL;
 		}
 
+		/*
+		 * introduces a new scope
+		 */
 		void push() {
 			if (current + 1 == stack.size()) {
 				stack.push_back(std::map<std::string, Symbol*>());
@@ -67,12 +89,18 @@ namespace ast {
 			++current;
 		}
 
+		/*
+		 * destroys the current scope
+		 */
 		void pop() {
 			assert(current > 0 && "cannot pop top scope");
 			stack[current].clear();
 			--current;
 		}
 
+		/*
+		 * destroys all scopes up to the top scope
+		 */
 		void popAll() {
 			while (current > 0) {
 				pop();

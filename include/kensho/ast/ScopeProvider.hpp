@@ -21,9 +21,16 @@
 namespace kensho {
 namespace ast {
 
+	/*
+	 * The ScopeProvider interface defines the API
+	 * everyone who wants to introduce and manage a scope.
+	 */
 	class ScopeProvider {
 	public:
 
+		/*
+		 * retrieves the scope
+		 */
 		virtual Scope& getScope() = 0;
 
 		virtual ~ScopeProvider() {};
