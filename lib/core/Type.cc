@@ -21,62 +21,84 @@
 
 using namespace kensho;
 
-	const llvm::Type* mapToLLVM(int32_t type) {
-		switch (type) {
-			case ast::TyVoid:
-				return llvm::Type::VoidTy;
-			case ast::TyBool:
-				return llvm::Type::Int1Ty;
-			case ast::TyByte:
-				return llvm::Type::Int8Ty;
-			case ast::TyShort:
-				return llvm::Type::Int16Ty;
-			case ast::TyInt:
-			case ast::TyChar:
-				return llvm::Type::Int32Ty;
-			case ast::TyLong:
-				return llvm::Type::Int64Ty;
-			case ast::TyFloat:
-				return llvm::Type::FloatTy;
-			case ast::TyDouble:
-				return llvm::Type::DoubleTy;
-		}
-
-		return NULL;
-	}
-
-	llvm::Value* ast::Type::getDefaultValue() {
+	llvm::Value* ast::Type::getDefaultValue() const {
 		assert(llvmType != NULL && "assemble the type first");
-		if (llvmType->isFloatingPoint()) {
-			// return NaN
-			return llvm::ConstantFP::get(llvmType, 0x7fc00000);
-		}
 		// initialize to 0, i.e. false for bools,
 		// 0 for ints and null for pointers
 		return llvm::Constant::getNullValue(llvmType);
 	}
 
-	bool ast::Type::isVoid() {
-		return ( token != -1 && token == ast::TyVoid ) ||
-			( llvmType != NULL && llvmType == llvm::Type::VoidTy );
+	ast::Type* ast::PrimitiveType::create(TypeToken token) {
+		static PrimitiveType Void(TyVoid, llvm::Type::VoidTy);
+		static PrimitiveType Bool(TyBool, llvm::Type::Int1Ty);
+		static PrimitiveType Byte(TyByte, llvm::Type::Int8Ty);
+		static PrimitiveType Short(TyShort, llvm::Type::Int16Ty);
+		static PrimitiveType Int(TyInt, llvm::Type::Int32Ty);
+		static PrimitiveType Long(TyLong, llvm::Type::Int64Ty);
+		static PrimitiveType Double(TyDouble, llvm::Type::DoubleTy);
+		static PrimitiveType Float(TyFloat, llvm::Type::FloatTy);
+		switch (token) {
+			case ast::TyVoid:
+				return &Void;
+			case ast::TyBool:
+				return &Bool;
+			case ast::TyByte:
+				return &Byte;
+			case ast::TyShort:
+				return &Short;
+			case ast::TyInt:
+			case ast::TyChar:
+				return &Int;
+			case ast::TyLong:
+				return &Long;
+			case ast::TyFloat:
+				return &Float;
+			case ast::TyDouble:
+				return &Double;
+			default:
+				assert(false);
+		}
 	}
 
-	bool ast::Type::isPrimitive() {
-		return (token != -1 && token != ast::TyPtr) ||
-			( llvmType != NULL && llvmType->isPrimitiveType());
-	}
-
-	void ast::Type::assemble() {
-		if (token == -1 || token == ast::TyPtr) {
-			Type* userType = mb.getUserType(name);
-			if (userType == NULL) {
-				throw(ParseError("undeclared type " + name, getLine(), getOffset()));
+	void ast::StructType::assemble() {
+		assert(types.size() > 0 && "struct type cannot be empty");
+		llvm::PATypeHolder oty = llvm::OpaqueType::get();
+		std::vector<const llvm::Type*> llvmTypes;
+		for (uint32_t i = 0; i < types.size(); ++i) {
+			if (types[i]->isPrimitive()) {
+				llvmTypes.push_back(types[i]->getAssemblyType());
 			}
-			llvmType = userType->getAssemblyType();
+			else {
+				// we have a struct type as member so we need
+				// to watch out for it either being this type or
+				// referencing this type in which case we have a
+				// recursive or cyclic declaration and must
+				// perform type unification
+				StructType* ty = dynamic_cast<StructType*>(types[i]);
+				assert(ty != NULL);
+				// it's a reference to this struct so we have a recursive type
+				// that means we have to use an opaque type now and resolve it later
+				if (ty->getName() == name) {
+					llvmTypes.push_back(llvm::PointerType::getUnqual(oty));
+				}
+				// it's a reference to another struct type but this other
+				// type may contain a reference to this type again in which
+				// case we deal with a cyclic declaration.
+				// The moment we call getAssemblyType on such a type we invoke
+				// this method again unless we set the llvmType to a non-null value.
+				else {
+					llvmType = oty;
+					llvmTypes.push_back(llvm::PointerType::getUnqual(
+						ty->getAssemblyType()));
+				}
+			}
 		}
-		else {
-			llvmType = mapToLLVM(token);
-		}
-		assert(llvmType != NULL && "type not handled in mapping");
+
+		llvmType = llvm::StructType::get(llvmTypes);
+
+		// in case we have a cyclic or recursive declaration we need
+		// to perform type unification
+		llvm::cast<llvm::OpaqueType>(oty.get())->refineAbstractTypeTo(llvmType);
+		llvmType = llvm::cast<llvm::StructType>(oty.get());
 	}
 

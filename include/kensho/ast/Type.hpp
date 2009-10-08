@@ -20,50 +20,108 @@
 #include <kensho/ast/SourceLocationAware.hpp>
 #include <llvm/Type.h>
 #include <llvm/Value.h>
+#include <llvm/DerivedTypes.h>
 
 namespace kensho {
 namespace ast {
 
 	class ModuleBuilder;
 
+	/*
+	 * Basic type class
+	 */
 	class Type : public SourceLocationAware {
-	private:
-		ModuleBuilder& mb;
-		const llvm::Type* llvmType;
-		int32_t token;
-		std::string name;
+	protected:
 
-		void assemble();
+		const llvm::Type* llvmType;
+
+		Type() : llvmType(NULL) {};
+
+		Type(const llvm::Type* type) : llvmType(type) {};
 
 	public:
 
-		Type(ModuleBuilder& mb, TypeToken token, std::string name) :
-			mb(mb), llvmType(NULL), token(token), name(name) {
-			assert(token != -1);
-		};
-
-		Type(ModuleBuilder& mb, const llvm::Type* llvmType) :
-			mb(mb), llvmType(llvmType), token(-1) {};
-
-		Type(ModuleBuilder& mb, const llvm::Type* llvmType, std::string name) :
-			mb(mb), llvmType(llvmType), token(-1), name(name) {};
-
-		const llvm::Type* getAssemblyType() {
-			if (llvmType == NULL) {
-				assemble();
-			}
+		virtual const llvm::Type* getAssemblyType() const {
 			return llvmType;
 		}
 
-		llvm::Value* getDefaultValue();
+		virtual llvm::Value* getDefaultValue() const;
+
+		virtual bool isPrimitive() const = 0;
+
+		virtual bool isVoid() const = 0;
+
+		virtual ~Type() {};
+	};
+
+	/*
+	 * Represents a primitive type
+	 */
+	class PrimitiveType : public Type {
+	private:
+
+		TypeToken token;
+
+		PrimitiveType(TypeToken token, const llvm::Type* type) :
+			Type(type), token(token) {};
+
+	public:
+
+		static Type* create(TypeToken token);
+
+		virtual bool isPrimitive() const{
+			return true;
+		}
+
+		virtual bool isVoid() const {
+			return token == TyVoid;
+		}
+	};
+
+	/*
+	 * Represents a struct type
+	 */
+	class StructType : public Type {
+	private:
+
+		std::string name;
+		std::vector<Type*> types;
+		const llvm::Type* abstract;
+		void assemble();
+
+	public:
+		StructType(std::string& name) :	name(name) {};
+
+		StructType(std::string& name, std::vector<Type*> types) :
+			name(name), types(types) {};
+
+		void addMemberType(Type* type) {
+			types.push_back(type);
+		}
+
+		const llvm::Type* getAbstractType() {
+			return abstract;
+		}
 
 		std::string getName() {
 			return name;
 		}
 
-		bool isVoid();
+		virtual const llvm::Type* getAssemblyType() {
+			if (llvmType == NULL) {
+				assemble();
+			}
+			assert(llvmType != NULL);
+			return llvmType;
+		}
 
-		bool isPrimitive();
+		virtual bool isPrimitive() const {
+			return false;
+		}
+
+		virtual bool isVoid() const {
+			return false;
+		}
 	};
 
 }} // end ns

@@ -19,7 +19,7 @@
 
 #include <llvm/AbstractTypeUser.h>
 #include <llvm/DerivedTypes.h>
-
+#include <iostream>
 using namespace kensho;
 
 	void ast::Struct::assemble(ModuleBuilder& mb) {
@@ -29,42 +29,21 @@ using namespace kensho;
 		}
 	}
 
-	void ast::Struct::assembleType(ModuleBuilder& mb) {
-		std::vector<const llvm::Type*> types;
-		llvm::PATypeHolder opaqueTy = llvm::OpaqueType::get();
-		bool recursive = false;
-		for (uint32_t i = 0; i < variables.size(); ++i) {
-			VariableDefinition* var = variables.at(i);
-			Type* ty = var->getType();
-			if (ty->isPrimitive() || ty->getName() != name) {
-				types.push_back(ty->getAssemblyType());
+	void ast::Struct::constructType(StructType* ty) {
+		if (type == NULL) {
+			std::vector<Type*> types;
+			assert(variables.size() > 0);
+			for (uint32_t i = 0; i < variables.size(); ++i) {
+				ty->addMemberType(variables[i]->getType());
 			}
-			else {
-				// if a member of the struct is the struct itself we have
-				// a recursive type and need to do some more
-				// work to construct the corresponding llvm type
-				recursive = true;
-				types.push_back(llvm::PointerType::getUnqual(opaqueTy));
-			}
+			type = ty;
 		}
-		llvm::StructType* ty = llvm::StructType::get(types);
-		// we need to perform type unification if the type is recursive
-		if (recursive) {
-			llvm::cast<llvm::OpaqueType>(opaqueTy.get())
-				->refineAbstractTypeTo(ty);
-			ty = llvm::cast<llvm::StructType>(opaqueTy.get());
-		}
-		mb.getModule()->addTypeName(name, ty);
-
-		// we only work with references, i.e. pointers
-		assemblyType = llvm::PointerType::getUnqual(ty);
-		mb.declareUserType(new Type(mb, assemblyType, name));
 	}
 
 	void ast::Struct::emitConstructorDefinition(ModuleBuilder& mb) {
 		if (ctor == NULL) {
 			ctor = new Struct::Function(this,
-				new ast::Function("new", new Type(mb, llvm::Type::VoidTy),
+				new ast::Function("new", PrimitiveType::create(TyVoid),
 						std::vector<Buildable*>()), false);
 		}
 
@@ -72,13 +51,14 @@ using namespace kensho;
 	}
 
 	void ast::Struct::emitDestructorDefinition(ModuleBuilder& mb) {
-		ast::Function* dtorFun = new ast::Function("delete", new Type(mb, llvm::Type::VoidTy), dtorBody);
+		ast::Function* dtorFun = new ast::Function(
+			"delete", PrimitiveType::create(TyVoid), dtorBody);
 		dtor = new Struct::Function(this, dtorFun, false);
 		dtor->emitDefinition(mb);
 	}
 
 	void ast::Struct::emitDefinition(ModuleBuilder& mb) {
-		assembleType(mb);
+		mb.getModule()->addTypeName(name, type->getAssemblyType());
 		emitConstructorDefinition(mb);
 		if (hasDestructor()) {
 			emitDestructorDefinition(mb);
@@ -92,7 +72,7 @@ using namespace kensho;
 	void::ast::Struct::Function::emitDefinition(ModuleBuilder& mb) {
 		function->setName(parent->name + "." + function->getName());
 		if (staticDef == false) {
-			function->prependParameter("this", new Type(mb, parent->assemblyType));
+			function->prependParameter("this", parent->type);
 		}
 		function->emitDefinition(mb);
 	}

@@ -110,7 +110,7 @@ structCtor[std::string parentName] returns [kensho::ast::Function* node]
 @init { uint32_t paramCount = 0; }
 	:	^(CTOR {
 			$node = new kensho::ast::Function(
-				"new", $program::mb->createType(kensho::ast::TyVoid, ""));
+				"new", $program::mb->createType(kensho::ast::TyVoid));
 		}
 			params[$node, paramCount++]* 
 			( statement {
@@ -178,7 +178,7 @@ signature returns [kensho::ast::Function* node]
 	
 functionType returns [kensho::ast::Type* ty]
 	:	T_VOID {
-			$ty = $program::mb->createType(kensho::ast::TyVoid, "");
+			$ty = $program::mb->createType(kensho::ast::TyVoid);
 		} 
 	| 	type { $ty = $type.ty; }
 	;	

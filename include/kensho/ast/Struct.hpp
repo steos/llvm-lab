@@ -28,8 +28,14 @@
 namespace kensho {
 namespace ast {
 
+	/*
+	 * a struct definition
+	 */
 	class Struct : public Buildable {
 	public:
+		/*
+		 * a struct function
+		 */
 		class Function {
 		private:
 			Struct* parent;
@@ -44,39 +50,52 @@ namespace ast {
 			void emit(ModuleBuilder& mb);
 		};
 		std::string name;
-		const llvm::Type* assemblyType;
+		StructType* type;
 		std::vector<Struct::Function*> functions;
 		std::vector<VariableDefinition*> variables;
 		std::map<std::string, int> varmap;
 		Struct::Function* ctor;
 		Struct::Function* dtor;
 		std::vector<Buildable*> dtorBody;
-		void assembleType(ModuleBuilder&);
+
 		void emitConstructorDefinition(ModuleBuilder&);
 		void emitDestructorDefinition(ModuleBuilder&);
+
 	public:
-		Struct(std::string name) : name(name), assemblyType(NULL), ctor(NULL), dtor(NULL) {};
+
+		Struct(std::string name) :
+			name(name), type(NULL), ctor(NULL), dtor(NULL) {};
+
+		void constructType(StructType* ty);
+
 		virtual void assemble(ModuleBuilder& mb);
+
 		void addFunction(ast::Function* func, bool staticDef) {
 			functions.push_back(new Struct::Function(this, func, staticDef));
 		}
+
 		void addFunction(ast::Function* func) {
 			addFunction(func, false);
 		}
+
 		void addVariableDefinition(VariableDefinition* vardef) {
 			variables.push_back(vardef);
 			// start the index at 1
 			varmap[vardef->getName()] = variables.size();
 		}
+
 		void setConstructor(ast::Function* ctor) {
 			this->ctor = new Struct::Function(this, ctor, false);
 		}
+
 		void addDestructorBodyNode(Buildable* node) {
 			dtorBody.push_back(node);
 		}
+
 		bool hasVariable(std::string name) {
 			return varmap.count(name) > 0;
 		}
+
 		int getVariableIndex(std::string name) {
 			int index = varmap[name];
 			if (!index) {
@@ -84,6 +103,7 @@ namespace ast {
 			}
 			return index - 1;
 		}
+
 		void emitDefinition(ModuleBuilder& mb);
 
 		Struct::Function* getConstructor() {
@@ -96,10 +116,6 @@ namespace ast {
 
 		std::string getName() {
 			return name;
-		}
-
-		const llvm::Type* getAssemblyType() {
-			return assemblyType;
 		}
 	};
 

@@ -44,38 +44,84 @@ namespace ast {
 	 */
 	class ModuleBuilder {
 	private:
+
 		llvm::Module module;
 		llvm::IRBuilder<> irBuilder;
 		std::vector<Callable*> functions;
 		std::vector<ast::Struct*> structs;
 		ScopeProvider* symbolScopeProvider;
-		llvm::StringMap<Type*> types;
+		llvm::StringMap<StructType*> types;
 		llvm::StringMap<Callable*> funcs;
 		llvm::FunctionPassManager* fpm;
 		llvm::ExecutionEngine* engine;
+
 		void initEngine(bool mem2reg, bool optimize);
+
 		void emitStructFunctionDefinitions();
+
+		void declareUserType(StructType* ty) {
+			types[ty->getName()] = ty;
+		}
+
 	public:
+
 		ModuleBuilder(std::string name) : module(name), symbolScopeProvider(NULL) {};
 
-		llvm::IRBuilder<>& getIRBuilder();
+		void postProcessFunction(llvm::Function* fun);
 
-		llvm::Module* getModule();
+		void declareFunction(Callable* fun);
+
+		void emitDefinitions();
+
+		void emitImplementations();
+
+		bool isFunctionDeclared(std::string name) {
+			return funcs.count(name) > 0;
+		}
+
+		Callable* getFunction(std::string name) {
+			return funcs[name];
+		}
+
+		bool isUserTypeDeclared(std::string name) {
+			return types.count(name) > 0;
+		}
+
+		StructType* getUserType(std::string name) {
+			return types[name];
+		}
+
+		void build(bool mem2reg, bool optimize);
+
+		llvm::Value* createBinaryOperator(
+			OperatorToken type, llvm::Value* left, llvm::Value* right);
+
+		llvm::ExecutionEngine* getEngine() {
+			return engine;
+		}
 
 		void addFunction(Callable* fun) {
 			functions.push_back(fun);
 		}
 
-		void addStruct(Struct* st) {
-			structs.push_back(st);
+		void addStruct(Struct* st);
+
+		Type* createType(TypeToken token) {
+			return PrimitiveType::create(token);
+		}
+
+		Type* createType(std::string name) {
+			StructType* ty = types[name];
+			if (ty == NULL) {
+				ty = new StructType(name);
+				types[name] = ty;
+			}
+			return ty;
 		}
 
 		Type* createType(TypeToken token, std::string name) {
-			return new Type(*this, token, name);
-		}
-
-		Type* createType(const llvm::Type* ty) {
-			return new Type(*this, ty);
+			return token == TyPtr ?
+				createType(name) : createType(token);
 		}
 
 		void installSymbolScopeProvider(ScopeProvider* sp) {
@@ -95,63 +141,16 @@ namespace ast {
 			return symbolScopeProvider->getScope();
 		}
 
-		void declareFunction(Callable* fun);
+		llvm::IRBuilder<>& getIRBuilder() {
+			return irBuilder;
+		}
 
-		bool isFunctionDeclared(std::string name);
-
-		Callable* getFunction(std::string name);
-
-		void declareUserType(Type*);
-
-		bool isUserTypeDeclared(std::string name);
-
-		Type* getUserType(std::string name);
-
-		void build(bool mem2reg, bool optimize);
-
-		llvm::Value* createBinaryOperator(
-			OperatorToken type, llvm::Value* left, llvm::Value* right);
-
-		llvm::ExecutionEngine* getEngine();
-
-		void emitDefinitions();
-
-		void emitImplementations();
+		llvm::Module* getModule() {
+			return &module;
+		}
 
 		~ModuleBuilder() {};
 	};
-
-	inline bool ModuleBuilder::isUserTypeDeclared(std::string name) {
-		return types.count(name) > 0;
-	}
-
-	inline Type* ModuleBuilder::getUserType(std::string name) {
-		return types[name];
-	}
-
-	inline void ModuleBuilder::declareUserType(Type* ty) {
-		types[ty->getName()] = ty;
-	}
-
-	inline bool ModuleBuilder::isFunctionDeclared(std::string name) {
-		return funcs.count(name) > 0;
-	}
-
-	inline Callable* ModuleBuilder::getFunction(std::string name) {
-		return funcs[name];
-	}
-
-	inline llvm::ExecutionEngine* ModuleBuilder::getEngine() {
-		return engine;
-	}
-
-	inline llvm::Module* ModuleBuilder::getModule() {
-		return &module;
-	}
-
-	inline llvm::IRBuilder<>& ModuleBuilder::getIRBuilder() {
-		return irBuilder;
-	}
 
 }}
 

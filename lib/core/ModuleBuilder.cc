@@ -30,6 +30,13 @@ using namespace kensho;
 		funcs[fun->getName()] = fun;
 	}
 
+	void ast::ModuleBuilder::addStruct(Struct* st) {
+		structs.push_back(st);
+		StructType* ty = dynamic_cast<StructType*>(createType(st->getName()));
+		st->constructType(ty);
+		declareUserType(ty);
+	}
+
 	void ast::ModuleBuilder::emitDefinitions() {
 		int numFuns = functions.size();
 		int numStructs = structs.size();
@@ -52,14 +59,13 @@ using namespace kensho;
 		}
 		for (int i = 0; i < numFuns; ++i) {
 			Callable* cb = functions.at(i);
-			llvm::Value* value = cb->emit(*this);
-			Function* fun = dynamic_cast<Function*>(cb);
-			if (fun) {
-				llvm::Function* llvmFun = llvm::cast<llvm::Function>(value);
-				llvm::verifyFunction(*llvmFun);
-				fpm->run(*llvmFun);
-			}
+			cb->assemble(*this);
 		}
+	}
+
+	void ast::ModuleBuilder::postProcessFunction(llvm::Function* fun) {
+		llvm::verifyFunction(*fun);
+		fpm->run(*fun);
 	}
 
 	void ast::ModuleBuilder::build(bool mem2reg, bool optimize) {

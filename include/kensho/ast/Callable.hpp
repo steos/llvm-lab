@@ -31,10 +31,10 @@ namespace ast {
 	class Callable : public Symbol {
 	protected:
 		std::vector<Type*> parameterTypes;
-		virtual void assemble(ModuleBuilder& mb);
 	public:
 		Callable(std::string name, Type* type) :
 			Symbol(name, type) {};
+		virtual void assemble(ModuleBuilder& mb);
 		virtual void emitDefinition(ModuleBuilder& mb);
 		virtual void addParameter(Type* type);
 		virtual void prependParameter(Type*);

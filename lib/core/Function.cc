@@ -88,4 +88,5 @@ using namespace kensho;
 		}
 
 		mb.uninstallSymbolScopeProvider();
+		mb.postProcessFunction(llvm::cast<llvm::Function>(value));
 	}
