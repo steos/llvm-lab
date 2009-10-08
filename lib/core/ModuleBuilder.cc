@@ -48,7 +48,7 @@ using namespace kensho;
 		int numStructs = structs.size();
 		for (int i = 0; i < numStructs; ++i) {
 			Struct* st = structs.at(i);
-			st->emit(*this);
+			st->assemble(*this);
 		}
 		for (int i = 0; i < numFuns; ++i) {
 			Callable* cb = functions.at(i);

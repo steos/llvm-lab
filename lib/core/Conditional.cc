@@ -60,7 +60,7 @@ using namespace kensho;
 		// emit true block
 		mb.getIRBuilder().SetInsertPoint(trueBlock);
 		for (uint32_t i = 0; i < trueBody.size(); ++i) {
-			trueBody.at(i)->emit(mb);
+			trueBody.at(i)->assemble(mb);
 			if (trueBody.at(i)->isReturnStatement() && i < trueBody.size() - 1) {
 				throw(ParseError("unreachable code after return statement",
 					getLine(), getOffset()));
@@ -104,7 +104,7 @@ using namespace kensho;
 				fun->getBasicBlockList().push_back(branchBlock);
 				mb.getIRBuilder().SetInsertPoint(branchBlock);
 				for (uint32_t i = 0; i < cond->trueBody.size(); ++i) {
-					cond->trueBody.at(i)->emit(mb);
+					cond->trueBody.at(i)->assemble(mb);
 					if (cond->trueBody.at(i)->isReturnStatement()
 						&& i < cond->trueBody.size() - 1) {
 						throw(ParseError("unreachable code after return statement",
@@ -125,7 +125,7 @@ using namespace kensho;
 			fun->getBasicBlockList().push_back(falseBlock);
 			mb.getIRBuilder().SetInsertPoint(falseBlock);
 			for (uint32_t i = 0; i < falseBody.size(); ++i) {
-				falseBody.at(i)->emit(mb);
+				falseBody.at(i)->assemble(mb);
 				if (falseBody.at(i)->isReturnStatement() && i < falseBody.size() - 1) {
 					throw(ParseError("unreachable code after return statement",
 						getLine(), getOffset()));
@@ -142,6 +142,4 @@ using namespace kensho;
 		// emit merge block
 		fun->getBasicBlockList().push_back(merge);
 		mb.getIRBuilder().SetInsertPoint(merge);
-
-		value = merge;
 	}

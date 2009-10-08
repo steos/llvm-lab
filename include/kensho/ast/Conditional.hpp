@@ -25,22 +25,25 @@ namespace ast {
 	/*
 	 * conditional statement, i.e. if-else
 	 */
-	class Conditional : public Node {
+	class Conditional : public Buildable {
 	private:
 		Node* expression;
-		std::vector<Node*> trueBody;
-		std::vector<Node*> falseBody;
+		std::vector<Buildable*> trueBody;
+		std::vector<Buildable*> falseBody;
 		std::vector<Conditional*> branches;
-	protected:
-		virtual void assemble(ModuleBuilder& mb);
 	public:
 		Conditional(Node* expression) : expression(expression) {};
-		void addTrueBodyNode(Node* node) {
+
+		virtual void assemble(ModuleBuilder& mb);
+
+		void addTrueBodyNode(Buildable* node) {
 			trueBody.push_back(node);
 		}
-		void addFalseBodyNode(Node* node) {
+
+		void addFalseBodyNode(Buildable* node) {
 			falseBody.push_back(node);
 		}
+
 		void addBranch(Conditional* c) {
 			branches.push_back(c);
 		}

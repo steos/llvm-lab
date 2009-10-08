@@ -50,14 +50,13 @@ namespace ast {
 		std::map<std::string, int> varmap;
 		Struct::Function* ctor;
 		Struct::Function* dtor;
-		std::vector<Node*> dtorBody;
+		std::vector<Buildable*> dtorBody;
 		void assembleType(ModuleBuilder&);
 		void emitConstructorDefinition(ModuleBuilder&);
 		void emitDestructorDefinition(ModuleBuilder&);
-	protected:
-		virtual void assemble(ModuleBuilder& mb);
 	public:
 		Struct(std::string name) : name(name), assemblyType(NULL), ctor(NULL), dtor(NULL) {};
+		virtual void assemble(ModuleBuilder& mb);
 		void addFunction(ast::Function* func, bool staticDef) {
 			functions.push_back(new Struct::Function(this, func, staticDef));
 		}
@@ -72,7 +71,7 @@ namespace ast {
 		void setConstructor(ast::Function* ctor) {
 			this->ctor = new Struct::Function(this, ctor, false);
 		}
-		void addDestructorBodyNode(Node* node) {
+		void addDestructorBodyNode(Buildable* node) {
 			dtorBody.push_back(node);
 		}
 		bool hasVariable(std::string name) {

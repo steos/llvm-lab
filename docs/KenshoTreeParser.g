@@ -190,7 +190,7 @@ params[kensho::ast::Function* node, uint32_t index]
 		}
 	;
 
-statement returns [kensho::ast::Node* node]
+statement returns [kensho::ast::Buildable* node]
 	:	variable { $node = $variable.node; }
 	|	expression { $node = $expression.node; }
 	|	ifStat { $node = $ifStat.node; }

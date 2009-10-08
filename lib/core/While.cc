@@ -42,7 +42,7 @@ using namespace kensho;
 		mb.getIRBuilder().SetInsertPoint(bodyBlock);
 		uint32_t stats = body.size();
 		for (uint32_t i = 0; i < stats; ++i) {
-			body.at(i)->emit(mb);
+			body.at(i)->assemble(mb);
 		}
 		// if last statement in the while is no return statement
 		// we must emit an unconditional branch back to the while condition block
@@ -53,6 +53,4 @@ using namespace kensho;
 		// emit merge block
 		fun->getBasicBlockList().push_back(merge);
 		mb.getIRBuilder().SetInsertPoint(merge);
-
-		value = merge;
 	}

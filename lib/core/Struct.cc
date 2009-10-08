@@ -64,7 +64,8 @@ using namespace kensho;
 	void ast::Struct::emitConstructorDefinition(ModuleBuilder& mb) {
 		if (ctor == NULL) {
 			ctor = new Struct::Function(this,
-				new ast::Function("new", new Type(mb, llvm::Type::VoidTy), std::vector<Node*>()), false);
+				new ast::Function("new", new Type(mb, llvm::Type::VoidTy),
+						std::vector<Buildable*>()), false);
 		}
 
 		ctor->emitDefinition(mb);

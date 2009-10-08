@@ -49,7 +49,7 @@ using namespace kensho;
 
 		uint32_t numStats = body.size();
 		for (uint32_t i = 0; i < numStats; ++i) {
-			body.at(i)->emit(mb);
+			body.at(i)->assemble(mb);
 			if (body.at(i)->isReturnStatement() && i < body.size() - 1) {
 				throw(ParseError("unreachable code after return statement",
 					getLine(), getOffset()));

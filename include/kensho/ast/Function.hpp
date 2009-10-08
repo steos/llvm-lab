@@ -30,16 +30,16 @@ namespace ast {
 	class Function : public Callable {
 	protected:
 		std::vector<std::string> parameterNames;
-		std::vector<Node*> body;
+		std::vector<Buildable*> body;
 		virtual void assemble(ModuleBuilder& mb);
 	public:
 		Function(std::string name, Type* type) :
 			Callable(name, type) {};
-		Function(std::string name, Type* type, std::vector<Node*> body) :
+		Function(std::string name, Type* type, std::vector<Buildable*> body) :
 			Callable(name, type), body(body) {};
 		virtual void addParameter(std::string name, Type* type);
 		virtual void prependParameter(std::string name, Type* type);
-		void addBodyNode(Node*);
+		void addBodyNode(Buildable*);
 	};
 
 	inline void Function::prependParameter(std::string name, Type* type) {
@@ -52,7 +52,7 @@ namespace ast {
 		parameterNames.push_back(name);
 	}
 
-	inline void Function::addBodyNode(Node* node) {
+	inline void Function::addBodyNode(Buildable* node) {
 		body.push_back(node);
 	}
 }}

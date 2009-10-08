@@ -25,15 +25,15 @@ namespace ast {
 	/*
 	 * while statement
 	 */
-	class While : public Node {
+	class While : public Buildable {
 	private:
 		Node* expression;
-		std::vector<Node*> body;
+		std::vector<Buildable*> body;
 	protected:
 		virtual void assemble(ModuleBuilder& mb);
 	public:
 		While(Node* expression) : expression(expression) {};
-		void addBodyNode(Node* node) {
+		void addBodyNode(Buildable* node) {
 			body.push_back(node);
 		}
 	};

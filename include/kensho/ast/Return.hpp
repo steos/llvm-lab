@@ -24,13 +24,15 @@ namespace ast {
 	class Return : public Node {
 	private:
 		Node* expression;
-	protected:
-		virtual void assemble(ModuleBuilder& mb);
 	public:
 		Return(Node* expression) : expression(expression) {};
+
+		virtual void assemble(ModuleBuilder& mb);
+
 		Node* getExpression() {
 			return expression;
 		}
+
 		virtual bool isReturnStatement();
 	};
 
