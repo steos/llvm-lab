@@ -18,6 +18,7 @@
 
 #include <kensho/ast/tokens.hpp>
 #include <llvm/Type.h>
+#include <llvm/Value.h>
 
 namespace kensho {
 namespace ast {
@@ -52,6 +53,8 @@ namespace ast {
 			}
 			return llvmType;
 		}
+
+		llvm::Value* getDefaultValue();
 
 		std::string getName() {
 			return name;

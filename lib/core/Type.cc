@@ -17,6 +17,7 @@
 #include <kensho/ast/ModuleBuilder.hpp>
 #include <kensho/ast/Struct.hpp>
 #include <kensho/error.hpp>
+#include <llvm/Constants.h>
 
 using namespace kensho;
 
@@ -42,6 +43,17 @@ using namespace kensho;
 		}
 
 		return NULL;
+	}
+
+	llvm::Value* ast::Type::getDefaultValue() {
+		assert(llvmType != NULL && "assemble the type first");
+		if (llvmType->isFloatingPoint()) {
+			// return NaN
+			return llvm::ConstantFP::get(llvmType, 0x7fc00000);
+		}
+		// initialize to 0, i.e. false for bools,
+		// 0 for ints and null for pointers
+		return llvm::Constant::getNullValue(llvmType);
 	}
 
 	bool ast::Type::isVoid() {
