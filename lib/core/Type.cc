@@ -28,6 +28,42 @@ using namespace kensho;
 		return llvm::Constant::getNullValue(llvmType);
 	}
 
+	llvm::Value* ast::Type::cast(llvm::Value* value, const llvm::Type* dst, ModuleBuilder& mb) {
+		const llvm::Type* src = value->getType();
+		if (src->isInteger() && dst->isInteger()) {
+			uint32_t srcBits = src->getPrimitiveSizeInBits();
+			uint32_t dstBits = dst->getPrimitiveSizeInBits();
+			if (srcBits > dstBits) {
+				throw(ParseError("cannot truncate integer type"));
+			}
+			else if (srcBits < dstBits) {
+				if (srcBits == 1) {
+					throw(ParseError("cannot cast boolean to numeric type"));
+				}
+				return mb.getIRBuilder().CreateSExt(value, dst);
+			}
+			else {
+				assert(false);
+			}
+		}
+		else if (src->isFloatingPoint() && dst->isInteger()) {
+			throw(ParseError("cannot cast floating point to integer"));
+		}
+		else if (src->isFloatingPoint() && dst->isFloatingPoint()) {
+			if (src == llvm::Type::DoubleTy && dst == llvm::Type::FloatTy) {
+				throw(ParseError("cannot cast double to float"));
+			}
+			else {
+				return mb.getIRBuilder().CreateFPExt(value, dst);
+			}
+		}
+		else {
+			throw(ParseError("type mismatch in binary expression"));
+		}
+
+		return NULL;
+	}
+
 	ast::Type* ast::PrimitiveType::create(TypeToken token) {
 		static PrimitiveType Void(TyVoid, llvm::Type::VoidTy);
 		static PrimitiveType Bool(TyBool, llvm::Type::Int1Ty);

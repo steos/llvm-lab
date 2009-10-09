@@ -19,7 +19,7 @@
 
 #include <llvm/AbstractTypeUser.h>
 #include <llvm/DerivedTypes.h>
-#include <iostream>
+
 using namespace kensho;
 
 	void ast::Struct::assemble(ModuleBuilder& mb) {
@@ -46,7 +46,7 @@ using namespace kensho;
 				new ast::Function("new", PrimitiveType::create(TyVoid),
 						std::vector<Buildable*>()), false);
 		}
-
+		// TODO initialize members to default values
 		ctor->emitDefinition(mb);
 	}
 

@@ -44,11 +44,13 @@ using namespace kensho;
 		VariableDefinition* vardef = dynamic_cast<VariableDefinition*>(sym);
 
 		assert(vardef != NULL && "can only handle variable definitions");
-
-		if (vardef->getType()->getAssemblyType() != typeRight) {
+		const llvm::Type* varType = vardef->getType()->getAssemblyType();
+		if (varType != typeRight) {
 			try {
-				llvm::Value* castVal = implicitTypeCast(
-					typeRight, vardef->getType()->getAssemblyType(), valRight, mb);
+				llvm::Value* castVal;// = vardef->getType()->cast(valRight, mb);
+				castVal = Type::cast(valRight, varType, mb);
+//				llvm::Value* castVal = implicitTypeCast(
+//					typeRight, vardef->getType()->getAssemblyType(), valRight, mb);
 
 				assert(castVal != NULL);
 				valRight = castVal;

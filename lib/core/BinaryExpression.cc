@@ -37,12 +37,14 @@ using namespace kensho;
 			try {
 				llvm::Value* castval = NULL;
 				if (typeLeft < typeRight) {
-					castval = implicitTypeCast(
-						typeLeft, typeRight, valLeft, mb);
+					castval = Type::cast(valLeft, typeRight, mb);
+//					castval = implicitTypeCast(
+//						typeLeft, typeRight, valLeft, mb);
 				}
 				else if (typeLeft > typeRight) {
-					castval = implicitTypeCast(
-						typeRight, typeLeft, valRight, mb);
+//					castval = implicitTypeCast(
+//						typeRight, typeLeft, valRight, mb);
+					castval = Type::cast(valRight, typeLeft, mb);
 				}
 				assert(castval != NULL);
 				valRight = castval;

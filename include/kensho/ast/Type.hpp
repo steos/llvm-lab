@@ -51,6 +51,8 @@ namespace ast {
 
 		virtual bool isVoid() const = 0;
 
+		static llvm::Value* cast(llvm::Value* value, const llvm::Type* ty, ModuleBuilder& mb);
+
 		virtual ~Type() {};
 	};
 
