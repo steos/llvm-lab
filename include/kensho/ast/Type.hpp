@@ -88,7 +88,6 @@ namespace ast {
 
 		std::string name;
 		std::vector<Type*> types;
-		const llvm::Type* abstract;
 		void assemble();
 
 	public:
@@ -99,10 +98,6 @@ namespace ast {
 
 		void addMemberType(Type* type) {
 			types.push_back(type);
-		}
-
-		const llvm::Type* getAbstractType() {
-			return abstract;
 		}
 
 		std::string getName() {

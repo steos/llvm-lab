@@ -71,10 +71,10 @@ using namespace kensho;
 	}
 
 	void::ast::StructFunction::emitDefinition(ModuleBuilder& mb) {
-		std::cout << name << "\n";
 		name = parent->getName() + "." + name;
-//		if (defStatic == false) {
-//			prependNamedParameter("this", parent->getType());
-//		}
+		if (defStatic == false) {
+			Type* ty = parent->getType();
+			prependNamedParameter("this", ty);
+		}
 		AbstractFunction::emitDefinition(mb);
 	}

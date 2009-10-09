@@ -42,7 +42,7 @@ namespace ast {
 			parameterTypes.push_back(type);
 		}
 
-		virtual void prependParameter(Type*) {
+		virtual void prependParameter(Type* type) {
 			parameterTypes.insert(parameterTypes.begin(), type);
 		}
 

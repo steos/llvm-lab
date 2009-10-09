@@ -32,7 +32,8 @@ using namespace kensho;
 		std::vector<const llvm::Type*> paramTypes;
 		std::vector<Type*>::iterator it;
 		for (it = parameterTypes.begin(); it != parameterTypes.end(); ++it) {
-			paramTypes.push_back((*it)->getAssemblyType());
+			const llvm::Type* llvmTy = (*it)->getAssemblyType();
+			paramTypes.push_back(llvmTy);
 		}
 		llvm::FunctionType* funtype = llvm::FunctionType::get(
 			type->getAssemblyType(), paramTypes, false);

@@ -123,18 +123,17 @@ using namespace kensho;
 				// The moment we call getAssemblyType on such a type we invoke
 				// this method again unless we set the llvmType to a non-null value.
 				else {
-					llvmType = oty;
-					llvmTypes.push_back(llvm::PointerType::getUnqual(
-						ty->getAssemblyType()));
+					llvmType = llvm::PointerType::getUnqual(oty);
+					llvmTypes.push_back(ty->getAssemblyType());
 				}
 			}
 		}
 
-		llvmType = llvm::StructType::get(llvmTypes);
+		llvm::StructType* ty = llvm::StructType::get(llvmTypes);
 
 		// in case we have a cyclic or recursive declaration we need
 		// to perform type unification
-		llvm::cast<llvm::OpaqueType>(oty.get())->refineAbstractTypeTo(llvmType);
-		llvmType = llvm::cast<llvm::StructType>(oty.get());
+		llvm::cast<llvm::OpaqueType>(oty.get())->refineAbstractTypeTo(ty);
+		llvmType = llvm::PointerType::getUnqual(llvm::cast<llvm::StructType>(oty.get()));
 	}
 
