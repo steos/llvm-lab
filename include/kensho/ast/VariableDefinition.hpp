@@ -17,7 +17,6 @@
 #define KENSHO_AST_VARIABLEDEFINITION_HPP_
 
 #include <kensho/ast/Symbol.hpp>
-#include <kensho/ast/util.hpp>
 
 namespace kensho {
 namespace ast {
