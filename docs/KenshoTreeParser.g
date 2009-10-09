@@ -96,21 +96,25 @@ structBodyDecl[kensho::ast::Struct* parent]
 		$parent->addVariableDefinition($variable.node);
 	}
 	|	structFunction[$parent]
-	|	ctor=structCtor[$parent->getName()] {
+	|	ctor=structCtor[$parent] {
 			if ($parent->getConstructor() != NULL) {
 				throw(kensho::ParseError("more than one constructor defined in struct " 
 					+ $parent->getName()));
 			}
-			$parent->setConstructor($ctor.node);
+			$parent->setConstructor(dynamic_cast<kensho::ast::StructFunction*>($ctor.node));
 		}
 	|	structDtor[$parent]
 	;
 	
-structCtor[std::string parentName] returns [kensho::ast::Function* node]
+structCtor[kensho::ast::Struct* parent] returns [kensho::ast::StructFunction* node]
 @init { uint32_t paramCount = 0; }
 	:	^(CTOR {
-			$node = new kensho::ast::Function(
-				"new", $program::mb->createType(kensho::ast::TyVoid));
+			$node = dynamic_cast<kensho::ast::StructFunction*>(
+				parent->createFunction(
+					"new", 
+					$program::mb->createType(kensho::ast::TyVoid)
+				)
+			);
 		}
 			params[$node, paramCount++]* 
 			( statement {
@@ -137,11 +141,15 @@ structFunction[kensho::ast::Struct* parent]
 	bool staticDef = false;
 }
 @after {
-	$parent->addFunction($sig.node, staticDef);
+	kensho::ast::StructFunction* fun = 
+		dynamic_cast<kensho::ast::StructFunction*>($sig.node);
+	assert(fun != NULL);
+	fun->setStatic(staticDef);
+	$parent->addFunction(fun);
 }
 	:	^(STRUCTFUN 
 			( structFunMods { if ($structFunMods.staticDef) staticDef = true; } )* 
-			sig=signature 
+			sig=signature[$parent]
 			( statement {
 				$sig.node->addBodyNode($statement.node);
 			})*
@@ -153,9 +161,13 @@ structFunMods returns [bool staticDef]
 	;
 	
 function returns [kensho::ast::Function* node]
+@init {
+	static kensho::ast::Function::Factory* factory = 
+		new kensho::ast::Function::Factory();
+}
 	:	^(FUNDEF 
-			signature { 
-				$node = $signature.node;
+			signature[factory] { 
+				$node = dynamic_cast<kensho::ast::Function*>($signature.node);
 			} 
 			( statement {
 				$node->addBodyNode($statement.node);
@@ -163,13 +175,14 @@ function returns [kensho::ast::Function* node]
 		)
 	;	
 	
-signature returns [kensho::ast::Function* node]
+signature[kensho::ast::FunctionFactory* fc] 
+returns [kensho::ast::AbstractFunction* node]
 @init { uint32_t paramCount = 0; }
 	:	^(FUNSIG 
 			t=functionType 
 			n=ID {
 				std::string name((char*)$n->getText($n)->chars);
-				$node = new kensho::ast::Function(name, $t.ty);
+				$node = fc->createFunction(name, $t.ty);
 				$node->setSourcePosition($n.line, $n.pos);
 			} 
 			params[$node, paramCount++]*
@@ -183,10 +196,10 @@ functionType returns [kensho::ast::Type* ty]
 	| 	type { $ty = $type.ty; }
 	;	
 		
-params[kensho::ast::Function* node, uint32_t index]
+params[kensho::ast::AbstractFunction* node, uint32_t index]
 	:	^(ARGDEF type n=ID) {
 			std::string name((char*)$n->getText($n)->chars);
-			$node->addParameter(name, $type.ty);
+			$node->addNamedParameter(name, $type.ty);
 		}
 	;
 

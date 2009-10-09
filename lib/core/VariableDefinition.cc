@@ -17,7 +17,7 @@
 #include <kensho/ast/Struct.hpp>
 #include <kensho/ast/ModuleBuilder.hpp>
 #include <kensho/error.hpp>
-#include <kensho/ast/util.hpp>
+
 #include <llvm/TypeSymbolTable.h>
 
 using namespace kensho;

@@ -19,6 +19,8 @@
 #include <kensho/ast/AbstractFunction.hpp>
 #include <kensho/ast/Type.hpp>
 #include <kensho/ast/ScopeProvider.hpp>
+#include <kensho/ast/FunctionFactory.hpp>
+
 #include <string>
 #include <vector>
 
@@ -29,6 +31,19 @@ namespace ast {
 	 * A top-level function, i.e. it provides it's own symbol scope
 	 */
 	class Function : public AbstractFunction, public ScopeProvider {
+	public:
+
+		class Factory : public FunctionFactory {
+		public:
+			AbstractFunction* createFunction(
+				std::string name, Type* type, std::vector<Buildable*> body) {
+				return new Function(name, type, body);
+			}
+			AbstractFunction* createFunction(std::string name, Type* type) {
+				return createFunction(name, type, std::vector<Buildable*>());
+			}
+		};
+
 	private:
 
 		Scope symbols;
@@ -41,12 +56,13 @@ namespace ast {
 		Function(std::string name, Type* type, std::vector<Buildable*> body) :
 			AbstractFunction(name, type, body) {};
 
-		virtual void assemble(ModuleBuilder& mb);
+		void assemble(ModuleBuilder& mb);
 
-		virtual Scope& getScope() {
+		Scope& getScope() {
 			return symbols;
 		}
 	};
+
 }}
 
 #endif /* KENSHO_AST_FUNCTION_HPP_ */

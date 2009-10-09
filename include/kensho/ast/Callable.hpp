@@ -33,41 +33,34 @@ namespace ast {
 	public:
 		Callable(std::string name, Type* type) :
 			Symbol(name, type) {};
+
 		virtual void assemble(ModuleBuilder& mb);
+
 		virtual void emitDefinition(ModuleBuilder& mb);
-		virtual void addParameter(Type* type);
-		virtual void prependParameter(Type*);
-		std::vector<Type*> getParameterTypes();
-		int countParameters();
-		void setName(std::string name);
-		Type* getParameterType(uint32_t offset);
+
+		virtual void addParameter(Type* type) {
+			parameterTypes.push_back(type);
+		}
+
+		virtual void prependParameter(Type*) {
+			parameterTypes.insert(parameterTypes.begin(), type);
+		}
+
+		std::vector<Type*> getParameterTypes() {
+			return parameterTypes;
+		}
+
+		int countParameters() {
+			return parameterTypes.size();
+		}
+
+		Type* getParameterType(uint32_t offset) {
+			assert(offset < parameterTypes.size());
+			return parameterTypes.at(offset);
+		}
+
 		virtual ~Callable() {};
 	};
-
-	inline Type* Callable::getParameterType(uint32_t offset) {
-		assert(offset < parameterTypes.size());
-		return parameterTypes.at(offset);
-	}
-
-	inline void Callable::setName(std::string name) {
-		this->name = name;
-	}
-
-	inline void Callable::prependParameter(Type* type) {
-		parameterTypes.insert(parameterTypes.begin(), type);
-	}
-
-	inline void Callable::addParameter(Type* type) {
-		parameterTypes.push_back(type);
-	}
-
-	inline std::vector<Type*> Callable::getParameterTypes() {
-		return parameterTypes;
-	}
-
-	inline int Callable::countParameters() {
-		return parameterTypes.size();
-	}
 
 }} // end ns
 

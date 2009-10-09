@@ -20,13 +20,16 @@
 #include <llvm/AbstractTypeUser.h>
 #include <llvm/DerivedTypes.h>
 
+#include <iostream>
+
 using namespace kensho;
 
 	void ast::Struct::assemble(ModuleBuilder& mb) {
-
+		mb.installSymbolScopeProvider(this);
 		for (uint32_t i = 0; i < functions.size(); ++i) {
 			functions.at(i)->emit(mb);
 		}
+		mb.uninstallSymbolScopeProvider();
 	}
 
 	void ast::Struct::constructType(StructType* ty) {
@@ -42,18 +45,16 @@ using namespace kensho;
 
 	void ast::Struct::emitConstructorDefinition(ModuleBuilder& mb) {
 		if (ctor == NULL) {
-			ctor = new Struct::Function(this,
-				new ast::Function("new", PrimitiveType::create(TyVoid),
-						std::vector<Buildable*>()), false);
+			ctor = dynamic_cast<StructFunction*>(
+				createFunction("new", PrimitiveType::create(TyVoid))
+			);
 		}
 		// TODO initialize members to default values
 		ctor->emitDefinition(mb);
 	}
 
 	void ast::Struct::emitDestructorDefinition(ModuleBuilder& mb) {
-		ast::Function* dtorFun = new ast::Function(
-			"delete", PrimitiveType::create(TyVoid), dtorBody);
-		dtor = new Struct::Function(this, dtorFun, false);
+		dtor = createFunction("delete", PrimitiveType::create(TyVoid), dtorBody, false);
 		dtor->emitDefinition(mb);
 	}
 
@@ -69,14 +70,11 @@ using namespace kensho;
 		}
 	}
 
-	void::ast::Struct::Function::emitDefinition(ModuleBuilder& mb) {
-		function->setName(parent->name + "." + function->getName());
-		if (staticDef == false) {
-			function->prependParameter("this", parent->type);
-		}
-		function->emitDefinition(mb);
-	}
-
-	void ast::Struct::Function::emit(ModuleBuilder& mb) {
-		function->emit(mb);
+	void::ast::StructFunction::emitDefinition(ModuleBuilder& mb) {
+		std::cout << name << "\n";
+		name = parent->getName() + "." + name;
+//		if (defStatic == false) {
+//			prependNamedParameter("this", parent->getType());
+//		}
+		AbstractFunction::emitDefinition(mb);
 	}

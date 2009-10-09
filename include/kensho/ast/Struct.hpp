@@ -17,46 +17,61 @@
 #define KENSHO_AST_STRUCT_HPP_
 
 #include <kensho/ast/Buildable.hpp>
-#include <kensho/ast/Function.hpp>
+#include <kensho/ast/AbstractFunction.hpp>
+#include <kensho/ast/FunctionFactory.hpp>
 #include <kensho/ast/VariableDefinition.hpp>
+#include <kensho/ast/ScopeProvider.hpp>
+
+#include <llvm/DerivedTypes.h>
+
 #include <string>
 #include <vector>
 #include <map>
 
-#include <llvm/DerivedTypes.h>
-
 namespace kensho {
 namespace ast {
+
+	// forward declare Struct
+	class Struct;
+
+	/*
+	 * a struct function
+	 */
+	class StructFunction : public AbstractFunction {
+	private:
+
+		Struct* parent;
+		bool defStatic;
+
+	public:
+		StructFunction(Struct* parent, std::string name, Type* type) :
+			AbstractFunction(name, type), parent(parent) {};
+
+		StructFunction(Struct* parent, std::string name, Type* type, std::vector<Buildable*> body) :
+			AbstractFunction(name, type, body), parent(parent) {};
+
+		virtual void emitDefinition(ModuleBuilder& mb);
+
+		void setStatic(bool defStatic) {
+			this->defStatic = defStatic;
+		}
+	};
 
 	/*
 	 * a struct definition
 	 */
-	class Struct : public Buildable {
+	class Struct : public Buildable, public FunctionFactory, public ScopeProvider {
 	public:
-		/*
-		 * a struct function
-		 */
-		class Function {
-		private:
-			Struct* parent;
-			ast::Function* function;
-			bool staticDef;
-		protected:
-			void assemble(ModuleBuilder&);
-		public:
-			Function(Struct* parent, ast::Function* func, bool staticDef) :
-				parent(parent), function(func), staticDef(staticDef) {};
-			void emitDefinition(ModuleBuilder& mb);
-			void emit(ModuleBuilder& mb);
-		};
+
 		std::string name;
 		StructType* type;
-		std::vector<Struct::Function*> functions;
+		std::vector<StructFunction*> functions;
 		std::vector<VariableDefinition*> variables;
 		std::map<std::string, int> varmap;
-		Struct::Function* ctor;
-		Struct::Function* dtor;
+		StructFunction* ctor;
+		StructFunction* dtor;
 		std::vector<Buildable*> dtorBody;
+		Scope symbols;
 
 		void emitConstructorDefinition(ModuleBuilder&);
 		void emitDestructorDefinition(ModuleBuilder&);
@@ -70,12 +85,28 @@ namespace ast {
 
 		virtual void assemble(ModuleBuilder& mb);
 
-		void addFunction(ast::Function* func, bool staticDef) {
-			functions.push_back(new Struct::Function(this, func, staticDef));
+		StructFunction* createFunction(std::string name, Type* type,
+			std::vector<Buildable*> body, bool defStatic)
+		{
+			StructFunction* fun = new StructFunction(this, name, type, body);
+			fun->setStatic(defStatic);
+			return fun;
 		}
 
-		void addFunction(ast::Function* func) {
-			addFunction(func, false);
+		AbstractFunction* createFunction(
+			std::string name, Type* type, std::vector<Buildable*> body)
+		{
+			return dynamic_cast<AbstractFunction*>(
+				createFunction(name, type, body, false)
+			);
+		}
+
+		AbstractFunction* createFunction(std::string name, Type* type) {
+			return createFunction(name, type, std::vector<Buildable*>());
+		}
+
+		void addFunction(StructFunction* fun) {
+			functions.push_back(fun);
 		}
 
 		void addVariableDefinition(VariableDefinition* vardef) {
@@ -84,8 +115,8 @@ namespace ast {
 			varmap[vardef->getName()] = variables.size();
 		}
 
-		void setConstructor(ast::Function* ctor) {
-			this->ctor = new Struct::Function(this, ctor, false);
+		void setConstructor(StructFunction* ctor) {
+			this->ctor = ctor;
 		}
 
 		void addDestructorBodyNode(Buildable* node) {
@@ -106,7 +137,11 @@ namespace ast {
 
 		void emitDefinition(ModuleBuilder& mb);
 
-		Struct::Function* getConstructor() {
+		Scope& getScope() {
+			return symbols;
+		}
+
+		StructFunction* getConstructor() {
 			return ctor;
 		}
 
@@ -117,8 +152,11 @@ namespace ast {
 		std::string getName() {
 			return name;
 		}
-	};
 
+		StructType* getType() {
+			return type;
+		}
+	};
 
 }} // end ns
 

@@ -26,6 +26,16 @@ namespace ast {
 	 * functions that have an implementation.
 	 */
 	class AbstractFunction : public Callable {
+	private:
+
+		void addParameter(Type*) {
+			assert(false);
+		}
+
+		void prependParameter(Type*) {
+			assert(false);
+		}
+
 	protected:
 
 		std::vector<std::string> parameterNames;
@@ -39,12 +49,12 @@ namespace ast {
 		AbstractFunction(std::string name, Type* type, std::vector<Buildable*> body) :
 			Callable(name, type), body(body) {};
 
-		virtual void addParameter(std::string name, Type* type) {
+		void addNamedParameter(std::string name, Type* type) {
 			Callable::addParameter(type);
 			parameterNames.push_back(name);
 		}
 
-		virtual void prependParameter(std::string name, Type* type) {
+		void prependNamedParameter(std::string name, Type* type) {
 			Callable::prependParameter(type);
 			parameterNames.insert(parameterNames.begin(), 1, name);
 		}

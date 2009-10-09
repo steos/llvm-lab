@@ -41,7 +41,7 @@ namespace ast {
 
 	public:
 
-		virtual const llvm::Type* getAssemblyType() const {
+		virtual const llvm::Type* getAssemblyType() {
 			return llvmType;
 		}
 
@@ -71,11 +71,11 @@ namespace ast {
 
 		static Type* create(TypeToken token);
 
-		virtual bool isPrimitive() const{
+		bool isPrimitive() const{
 			return true;
 		}
 
-		virtual bool isVoid() const {
+		bool isVoid() const {
 			return token == TyVoid;
 		}
 	};
@@ -109,7 +109,7 @@ namespace ast {
 			return name;
 		}
 
-		virtual const llvm::Type* getAssemblyType() {
+		const llvm::Type* getAssemblyType() {
 			if (llvmType == NULL) {
 				assemble();
 			}
@@ -117,11 +117,11 @@ namespace ast {
 			return llvmType;
 		}
 
-		virtual bool isPrimitive() const {
+		bool isPrimitive() const {
 			return false;
 		}
 
-		virtual bool isVoid() const {
+		bool isVoid() const {
 			return false;
 		}
 	};
