@@ -14,13 +14,7 @@
  */
 
 #include <kensho/ast/Function.hpp>
-#include <kensho/ast/Return.hpp>
-#include <kensho/ast/VariableDefinition.hpp>
 #include <kensho/ast/ModuleBuilder.hpp>
-#include <kensho/error.hpp>
-
-#include <llvm/Value.h>
-#include <llvm/Function.h>
 
 using namespace kensho;
 
