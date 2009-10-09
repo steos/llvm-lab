@@ -18,7 +18,6 @@
 
 #include <kensho/ast/Symbol.hpp>
 
-#include <kensho/ast/util.hpp>
 #include <llvm/Type.h>
 
 namespace kensho {

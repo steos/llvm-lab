@@ -16,7 +16,7 @@
 #ifndef KENSHO_AST_FUNCTION_HPP_
 #define KENSHO_AST_FUNCTION_HPP_
 
-#include <kensho/ast/Callable.hpp>
+#include <kensho/ast/AbstractFunction.hpp>
 #include <kensho/ast/Type.hpp>
 #include <kensho/ast/ScopeProvider.hpp>
 #include <string>
@@ -26,41 +26,27 @@ namespace kensho {
 namespace ast {
 
 	/*
-	 * a function declaration node
+	 * A top-level function, i.e. it provides it's own symbol scope
 	 */
-	class Function : public Callable, public ScopeProvider {
-	protected:
-		std::vector<std::string> parameterNames;
-		std::vector<Buildable*> body;
+	class Function : public AbstractFunction, public ScopeProvider {
+	private:
+
 		Scope symbols;
+
 	public:
+
 		Function(std::string name, Type* type) :
-			Callable(name, type) {};
+			AbstractFunction(name, type) {};
+
 		Function(std::string name, Type* type, std::vector<Buildable*> body) :
-			Callable(name, type), body(body) {};
-		virtual void addParameter(std::string name, Type* type);
-		virtual void prependParameter(std::string name, Type* type);
-		void addBodyNode(Buildable*);
+			AbstractFunction(name, type, body) {};
+
 		virtual void assemble(ModuleBuilder& mb);
 
 		virtual Scope& getScope() {
 			return symbols;
 		}
 	};
-
-	inline void Function::prependParameter(std::string name, Type* type) {
-		Callable::prependParameter(type);
-		parameterNames.insert(parameterNames.begin(), 1, name);
-	}
-
-	inline void Function::addParameter(std::string name, Type* type) {
-		Callable::addParameter(type);
-		parameterNames.push_back(name);
-	}
-
-	inline void Function::addBodyNode(Buildable* node) {
-		body.push_back(node);
-	}
 }}
 
 #endif /* KENSHO_AST_FUNCTION_HPP_ */
