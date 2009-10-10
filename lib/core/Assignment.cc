@@ -41,17 +41,15 @@ using namespace kensho;
 				getLine(), getOffset()));
 		}
 
-		VariableDefinition* vardef = dynamic_cast<VariableDefinition*>(sym);
+		MutableSymbol* vardef = dynamic_cast<MutableSymbol*>(sym);
 
-		assert(vardef != NULL && "can only handle variable definitions");
+		assert(vardef != NULL && "can only assign to mutable symbols");
+
 		const llvm::Type* varType = vardef->getType()->getAssemblyType();
 		if (varType != typeRight) {
 			try {
-				llvm::Value* castVal;// = vardef->getType()->cast(valRight, mb);
+				llvm::Value* castVal;
 				castVal = Type::cast(valRight, varType, mb);
-//				llvm::Value* castVal = implicitTypeCast(
-//					typeRight, vardef->getType()->getAssemblyType(), valRight, mb);
-
 				assert(castVal != NULL);
 				valRight = castVal;
 			}
@@ -60,5 +58,5 @@ using namespace kensho;
 			}
 		}
 
-		value = mb.getIRBuilder().CreateStore(valRight, vardef->getValue());
+		value = vardef->store(valRight, mb);
 	}

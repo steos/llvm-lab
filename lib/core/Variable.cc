@@ -28,5 +28,9 @@ using namespace kensho;
 		}
 		assert(var != NULL);
 
-		value = mb.getIRBuilder().CreateLoad(var->getValue(), name.c_str());
+		MutableSymbol* sym = dynamic_cast<MutableSymbol*>(var);
+
+		assert(sym != NULL && "variable access can only performed on mutable symbols");
+
+		value = sym->load(mb);
 	}

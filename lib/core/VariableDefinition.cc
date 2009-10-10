@@ -22,6 +22,14 @@
 
 using namespace kensho;
 
+	llvm::Value* ast::VariableDefinition::load(ModuleBuilder& mb) {
+		return mb.getIRBuilder().CreateLoad(this->value, name.c_str());
+	}
+
+	llvm::Value* ast::VariableDefinition::store(llvm::Value* value, ModuleBuilder& mb) {
+		return mb.getIRBuilder().CreateStore(value, this->value);
+	}
+
 	void ast::VariableDefinition::assemble(ast::ModuleBuilder& mb) {
 		// if a variable with this name already exists bail out
 		if (mb.getSymbolScope().isDeclared(name)) {
@@ -37,7 +45,7 @@ using namespace kensho;
 
 		// emit store instruction to initialize the variable to
 		// a default value appropriate for its type
-		mb.getIRBuilder().CreateStore(type->getDefaultValue(), value);
+		store(type->getDefaultValue(), mb);
 
 		// declare the variable in the symbol table
 		mb.getSymbolScope().declareSymbol(this);

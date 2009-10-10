@@ -59,6 +59,17 @@ namespace ast {
 		virtual ~Symbol() {};
 	};
 
+	class MutableSymbol : public Symbol {
+	public:
+
+		MutableSymbol(std::string name, Type* type) :
+			Symbol(name, type) {};
+
+		virtual llvm::Value* store(llvm::Value*, ModuleBuilder&) = 0;
+
+		virtual llvm::Value* load(ModuleBuilder&) = 0;
+	};
+
 }}
 
 #endif /* KENSHO_AST_SYMBOL_HPP_ */

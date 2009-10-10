@@ -43,6 +43,10 @@ namespace ast {
 		Struct* parent;
 		bool defStatic;
 
+	protected:
+
+		void assembleParameters(llvm::Function*, ModuleBuilder&);
+
 	public:
 		StructFunction(Struct* parent, std::string name, Type* type) :
 			AbstractFunction(name, type), parent(parent) {};
@@ -52,9 +56,33 @@ namespace ast {
 
 		virtual void emitDefinition(ModuleBuilder& mb);
 
+		void assemble(ModuleBuilder&);
+
 		void setStatic(bool defStatic) {
 			this->defStatic = defStatic;
 		}
+
+		bool isStatic() {
+			return defStatic;
+		}
+	};
+
+	/*
+	 * a struct member, i.e. variable
+	 */
+	class StructVariableDefinition : public MutableSymbol {
+	private:
+		Struct* parent;
+		uint32_t index;
+	public:
+		StructVariableDefinition(Struct* parent, std::string name, Type* type, uint32_t index) :
+			MutableSymbol(name, type), parent(parent), index(index) {};
+
+		void assemble(ModuleBuilder& mb);
+
+		llvm::Value* store(llvm::Value*, ModuleBuilder&);
+
+		llvm::Value* load(ModuleBuilder&);
 	};
 
 	/*
@@ -75,6 +103,8 @@ namespace ast {
 
 		void emitConstructorDefinition(ModuleBuilder&);
 		void emitDestructorDefinition(ModuleBuilder&);
+
+		void declareVariables(ModuleBuilder&);
 
 	public:
 

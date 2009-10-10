@@ -24,18 +24,22 @@ namespace ast {
 	/*
 	 * represents a variable declaration
 	 */
-	class VariableDefinition : public Symbol {
+	class VariableDefinition : public MutableSymbol {
 	protected:
 		virtual void assemble(ModuleBuilder& mb);
 	public:
 		VariableDefinition(std::string name, Type* type) :
-			Symbol(name, type) {};
+			MutableSymbol(name, type) {};
 
 		void setName(std::string name);
 
 		virtual Type* getType() {
 			return type;
 		}
+
+		llvm::Value* load(ModuleBuilder&);
+
+		llvm::Value* store(llvm::Value*, ModuleBuilder&);
 	};
 
 	inline void VariableDefinition::setName(std::string name) {

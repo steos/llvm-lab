@@ -40,6 +40,9 @@ namespace ast {
 
 		std::vector<std::string> parameterNames;
 		std::vector<Buildable*> body;
+		std::vector<llvm::Value*> parameterValues;
+
+		virtual void assembleParameters(llvm::Function*, ModuleBuilder&);
 
 	public:
 

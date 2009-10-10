@@ -23,6 +23,21 @@
 
 using namespace kensho;
 
+	void ast::AbstractFunction::assembleParameters(llvm::Function* fun, ast::ModuleBuilder& mb) {
+		// set parameter names and emit declarations
+		llvm::Function::arg_iterator arg = NULL;
+		int32_t i = 0;
+		for (arg = fun->arg_begin(); arg != fun->arg_end(); ++arg, ++i) {
+			std::string str = parameterNames.at(i);
+			arg->setName(str.c_str());
+			VariableDefinition* vardef = new ast::VariableDefinition(
+				str, parameterTypes.at(i));
+			llvm::Value* ptr = vardef->emit(mb);
+			parameterValues.push_back(arg);
+			mb.getIRBuilder().CreateStore(arg, ptr);
+		}
+	}
+
 	void ast::AbstractFunction::assemble(ast::ModuleBuilder& mb) {
 		llvm::Function* fun = llvm::cast<llvm::Function>(value);
 		assert(fun != NULL);
@@ -34,17 +49,7 @@ using namespace kensho;
 		llvm::BasicBlock* entryBlock = llvm::BasicBlock::Create("entry", fun);
 		mb.getIRBuilder().SetInsertPoint(entryBlock);
 
-		// set parameter names and emit declarations
-		llvm::Function::arg_iterator arg = NULL;
-		int32_t i = 0;
-		for (arg = fun->arg_begin(); arg != fun->arg_end(); ++arg, ++i) {
-			std::string str = parameterNames.at(i);
-			arg->setName(str.c_str());
-			VariableDefinition* vardef = new ast::VariableDefinition(
-				str, parameterTypes.at(i));
-			llvm::Value* ptr = vardef->emit(mb);
-			mb.getIRBuilder().CreateStore(arg, ptr);
-		}
+		assembleParameters(fun, mb);
 
 		uint32_t numStats = body.size();
 		for (uint32_t i = 0; i < numStats; ++i) {

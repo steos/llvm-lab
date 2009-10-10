@@ -4,7 +4,7 @@ TOOLNAME = kensho
 
 USEDLIBS = kensho parser
 
-LINK_COMPONENTS := support system core engine
+LINK_COMPONENTS := jit nativecodegen
 
 include $(LEVEL)/Makefile.common
 

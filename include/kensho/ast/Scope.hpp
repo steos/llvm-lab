@@ -38,10 +38,27 @@ namespace ast {
 	private:
 		std::vector<std::map<std::string, Symbol*> > stack;
 		uint32_t current;
+		llvm::Value* context;
 	public:
-		Scope() : current(0) {
+		Scope() : current(0), context(NULL) {
 			stack.push_back(std::map<std::string, Symbol*>());
 		};
+
+		void installContextPointer(llvm::Value* context) {
+			this->context = context;
+		}
+
+		void uninstallContextPointer() {
+			this->context = NULL;
+		}
+
+		bool hasContextPointer() {
+			return context != NULL;
+		}
+
+		llvm::Value* getContextPointer() {
+			return context;
+		}
 
 		/*
 		 * declares a symbol in the current scope
