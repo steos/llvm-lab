@@ -32,7 +32,7 @@ using namespace kensho;
 		assert(pty != NULL && "struct type assembly must be pointer type");
 		const llvm::Type* ety = pty->getElementType();
 		ptr = mb.getIRBuilder().CreateMalloc(ety, 0, std::string(name + "Ref").c_str());
-		arguments.insert(arguments.begin(), new ContextPointer(ptr));
+		arguments.insert(arguments.begin(), new FakeNode(ptr));
 
 		name = name + ".new";
 

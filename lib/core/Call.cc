@@ -34,10 +34,8 @@ using namespace kensho;
 			Node* arg = arguments.at(i);
 			llvm::Value* val = arg->emit(mb);
 			if (expected.at(i)->getAssemblyType() != val->getType()) {
-				expected.at(i)->getAssemblyType()->dump();
-				val->getType()->dump();
 				throw(ParseError("type mismatch in call to function " + name
-					+ " for argument #" + boost::lexical_cast<std::string>(i),
+					+ " for argument #" + boost::lexical_cast<std::string>(i + 1),
 					getLine(), getOffset()));
 			}
 			values.push_back(val);
@@ -52,6 +50,7 @@ using namespace kensho;
 				getLine(), getOffset()));
 		}
 
+		fun->prepareCall(&arguments, mb);
 		std::vector<llvm::Value*> values = prepareParameters(fun, mb);
 
 		value = mb.getIRBuilder().CreateCall(

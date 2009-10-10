@@ -21,8 +21,10 @@
 #include <kensho/ast/FunctionFactory.hpp>
 #include <kensho/ast/VariableDefinition.hpp>
 #include <kensho/ast/ScopeProvider.hpp>
+#include <kensho/ast/FunctionProvider.hpp>
 
 #include <llvm/DerivedTypes.h>
+#include <llvm/ADT/StringMap.h>
 
 #include <string>
 #include <vector>
@@ -58,6 +60,8 @@ namespace ast {
 
 		void assemble(ModuleBuilder&);
 
+		void prepareCall(std::vector<Node*>* args, ModuleBuilder& mb);
+
 		void setStatic(bool defStatic) {
 			this->defStatic = defStatic;
 		}
@@ -92,7 +96,8 @@ namespace ast {
 	/*
 	 * a struct definition
 	 */
-	class Struct : public Buildable, public FunctionFactory, public ScopeProvider {
+	class Struct : public Buildable, public FunctionFactory,
+		public ScopeProvider, public FunctionProvider {
 	public:
 
 		std::string name;
@@ -104,6 +109,7 @@ namespace ast {
 		StructFunction* dtor;
 		std::vector<Buildable*> dtorBody;
 		Scope symbols;
+		llvm::StringMap<int> functionMap;
 
 		void emitConstructorDefinition(ModuleBuilder&);
 		void emitDestructorDefinition(ModuleBuilder&);
@@ -139,6 +145,15 @@ namespace ast {
 
 		void addFunction(StructFunction* fun) {
 			functions.push_back(fun);
+			functionMap[fun->getName()] = functions.size();
+		}
+
+		Callable* getFunction(const std::string& name) {
+			int index = functionMap[name];
+			if (index) {
+				return functions.at(index - 1);
+			}
+			return NULL;
 		}
 
 		void addVariableDefinition(VariableDefinition* vardef) {

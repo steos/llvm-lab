@@ -26,16 +26,6 @@ namespace ast {
 	 * functions that have an implementation.
 	 */
 	class AbstractFunction : public Callable {
-	private:
-
-		void addParameter(Type*) {
-			assert(false);
-		}
-
-		void prependParameter(Type*) {
-			assert(false);
-		}
-
 	protected:
 
 		std::vector<std::string> parameterNames;

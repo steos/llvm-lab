@@ -20,6 +20,7 @@
 #include <kensho/ast/Type.hpp>
 #include <kensho/ast/Symbol.hpp>
 #include <kensho/ast/ScopeProvider.hpp>
+#include <kensho/ast/FunctionProvider.hpp>
 
 #include <llvm/ADT/StringMap.h>
 #include <llvm/Value.h>
@@ -42,7 +43,7 @@ namespace ast {
 	 * manages the compilation of a module (i.e. is in charge
 	 * of the symbol table etc.)
 	 */
-	class ModuleBuilder {
+	class ModuleBuilder : public FunctionProvider {
 	private:
 
 		llvm::Module module;
@@ -54,6 +55,7 @@ namespace ast {
 		llvm::StringMap<Callable*> funcs;
 		llvm::FunctionPassManager* fpm;
 		llvm::ExecutionEngine* engine;
+		FunctionProvider* functionProvider;
 
 		void initEngine(bool mem2reg, bool optimize);
 
@@ -65,7 +67,16 @@ namespace ast {
 
 	public:
 
-		ModuleBuilder(std::string name) : module(name), symbolScopeProvider(NULL) {};
+		ModuleBuilder(std::string name) :
+			module(name), symbolScopeProvider(NULL), functionProvider(NULL) {};
+
+		void installFunctionProvider(FunctionProvider* fp) {
+			functionProvider = fp;
+		}
+
+		void uninstallFunctionProvider() {
+			functionProvider = NULL;
+		}
 
 		void postProcessFunction(llvm::Function* fun);
 
@@ -79,7 +90,13 @@ namespace ast {
 			return funcs.count(name) > 0;
 		}
 
-		Callable* getFunction(std::string name) {
+		Callable* getFunction(const std::string& name) {
+			if (functionProvider != NULL) {
+				Callable* fun = functionProvider->getFunction(name);
+				if (fun != NULL) {
+					return fun;
+				}
+			}
 			return funcs[name];
 		}
 

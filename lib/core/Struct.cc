@@ -49,6 +49,7 @@ using namespace kensho;
 
 	void ast::Struct::assemble(ModuleBuilder& mb) {
 		mb.installSymbolScopeProvider(this);
+		mb.installFunctionProvider(this);
 
 		// declare variables and insert initializations into the constructor
 		for (uint32_t i = 0; i < variables.size(); ++i) {
@@ -71,6 +72,7 @@ using namespace kensho;
 			mb.getSymbolScope().pop();
 		}
 
+		mb.uninstallFunctionProvider();
 		mb.uninstallSymbolScopeProvider();
 	}
 
@@ -121,6 +123,13 @@ using namespace kensho;
 			prependNamedParameter("this", ty);
 		}
 		AbstractFunction::emitDefinition(mb);
+	}
+
+	void ast::StructFunction::prepareCall(std::vector<Node*>* args, ModuleBuilder& mb) {
+		// inject this pointer if there is one
+		if (defStatic == false && mb.getSymbolScope().hasContextPointer()) {
+			args->insert(args->begin(), new FakeNode(mb.getSymbolScope().getContextPointer()));
+		}
 	}
 
 	void ast::StructFunction::assembleParameters(llvm::Function* fun, ModuleBuilder& mb) {

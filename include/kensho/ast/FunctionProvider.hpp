@@ -13,26 +13,24 @@
  * along with Kensho.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef KENSHO_AST_CONSTRUCTORCALL_HPP_
-#define KENSHO_AST_CONSTRUCTORCALL_HPP_
+#ifndef KENSHO_AST_FUNCTIONPROVIDER_HPP_
+#define KENSHO_AST_FUNCTIONPROVIDER_HPP_
 
-#include <kensho/ast/Call.hpp>
+#include <string>
 
 namespace kensho {
 namespace ast {
 
-	/**
-	 * constructor call
-	 */
-	class ConstructorCall : public Call {
-	protected:
-		llvm::Value* ptr;
-		void assemble(ModuleBuilder& mb);
+	class Callable;
+
+	class FunctionProvider {
 	public:
-		ConstructorCall(std::string name) : Call(name) {};
+
+		virtual Callable* getFunction(const std::string&) = 0;
+
+		virtual ~FunctionProvider() {};
 	};
 
 }} // end ns
 
-
-#endif /* KENSHO_AST_CONSTRUCTORCALL_HPP_ */
+#endif /* KENSHO_AST_FUNCTIONPROVIDER_HPP_ */

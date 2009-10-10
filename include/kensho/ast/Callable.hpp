@@ -29,10 +29,17 @@ namespace ast {
 	 */
 	class Callable : public Symbol {
 	protected:
+
 		std::vector<Type*> parameterTypes;
+
 	public:
+
 		Callable(std::string name, Type* type) :
 			Symbol(name, type) {};
+
+		virtual void prepareCall(std::vector<Node*>* args, ModuleBuilder& mb) {
+			// default is noop
+		}
 
 		virtual void assemble(ModuleBuilder& mb);
 
