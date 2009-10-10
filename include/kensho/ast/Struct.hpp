@@ -65,6 +65,10 @@ namespace ast {
 		bool isStatic() {
 			return defStatic;
 		}
+
+		void insertBodyNode(Buildable* node) {
+			body.insert(body.begin(), node);
+		}
 	};
 
 	/*
@@ -103,8 +107,6 @@ namespace ast {
 
 		void emitConstructorDefinition(ModuleBuilder&);
 		void emitDestructorDefinition(ModuleBuilder&);
-
-		void declareVariables(ModuleBuilder&);
 
 	public:
 

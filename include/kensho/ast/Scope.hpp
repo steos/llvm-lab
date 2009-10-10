@@ -61,6 +61,13 @@ namespace ast {
 		}
 
 		/*
+		 * clears all symbols in the current scope
+		 */
+		void clearSymbols() {
+			stack[current].clear();
+		}
+
+		/*
 		 * declares a symbol in the current scope
 		 */
 		void declareSymbol(Symbol* sym) {

@@ -26,24 +26,19 @@
 using namespace kensho;
 
 	void ast::StructVariableDefinition::assemble(ModuleBuilder& mb) {
-		// noop: here we would allocate space for the variable
-		// but since it's part of an aggregate type we have nothing to do
+		store(type->getDefaultValue(), mb);
 	}
 
 	llvm::Value* ast::StructVariableDefinition::load(ModuleBuilder& mb) {
-		// TODO retrieve context pointer and load a ptr to the variable
-//		assert(false && "sorry, StructVariableDefinition::load not yet implemented");
 		if (!mb.getSymbolScope().hasContextPointer()) {
 			throw(ParseError("instance variable " + name + " not availabe in static scope"));
 		}
 		llvm::Value* ptr = mb.getSymbolScope().getContextPointer();
 		llvm::Value* varPtr = mb.getIRBuilder().CreateStructGEP(ptr, index, name.c_str());
-		return varPtr;
+		return mb.getIRBuilder().CreateLoad(varPtr, name.c_str());
 	}
 
 	llvm::Value* ast::StructVariableDefinition::store(llvm::Value* val, ModuleBuilder& mb) {
-		// TODO retrieve context pointer and store the value into the variable
-//		assert(false && "sorry, StructVariableDefinition::store not yet implemented");
 		if (!mb.getSymbolScope().hasContextPointer()) {
 			throw(ParseError("instance variable " + name + " not availabe in static scope"));
 		}
@@ -52,23 +47,28 @@ using namespace kensho;
 		return mb.getIRBuilder().CreateStore(val, varPtr);
 	}
 
-	void ast::Struct::declareVariables(ModuleBuilder& mb) {
+	void ast::Struct::assemble(ModuleBuilder& mb) {
+		mb.installSymbolScopeProvider(this);
+
+		// declare variables and insert initializations into the constructor
 		for (uint32_t i = 0; i < variables.size(); ++i) {
 			VariableDefinition* def = variables[i];
 			StructVariableDefinition* var = new StructVariableDefinition(
 				this, def->getName(), def->getType(), i);
 			symbols.declareSymbol(var);
+			ctor->insertBodyNode(var);
 		}
-	}
 
-	void ast::Struct::assemble(ModuleBuilder& mb) {
-		mb.installSymbolScopeProvider(this);
-		declareVariables(mb);
+		mb.getSymbolScope().push();
+		ctor->emit(mb);
+		mb.getSymbolScope().pop();
 
-		// TODO emit ctor and dtor implementations
+		// TODO emit dtor
 
 		for (uint32_t i = 0; i < functions.size(); ++i) {
+			mb.getSymbolScope().push();
 			functions.at(i)->emit(mb);
+			mb.getSymbolScope().pop();
 		}
 
 		mb.uninstallSymbolScopeProvider();
@@ -91,7 +91,6 @@ using namespace kensho;
 				createFunction("new", PrimitiveType::create(TyVoid))
 			);
 		}
-		// TODO initialize members to default values
 		ctor->emitDefinition(mb);
 	}
 
