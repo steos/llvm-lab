@@ -23,6 +23,8 @@
 namespace kensho {
 namespace ast {
 
+	class Callable;
+
 	/**
 	 * function call
 	 */
@@ -31,6 +33,7 @@ namespace ast {
 		std::string name;
 		std::vector<Node*> arguments;
 		virtual void assemble(ModuleBuilder& mb);
+		virtual std::vector<llvm::Value*> prepareParameters(Callable* fun, ModuleBuilder& mb);
 	public:
 		Call(std::string name) : name(name) {};
 		void addArgument(Node* node) {

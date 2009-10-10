@@ -15,31 +15,28 @@
 
 #include <kensho/ast/ConstructorCall.hpp>
 #include <kensho/ast/ModuleBuilder.hpp>
+#include <kensho/ast/Callable.hpp>
+#include <kensho/error.hpp>
 
 using namespace kensho;
 
 	void ast::ConstructorCall::assemble(ast::ModuleBuilder& mb) {
-		assert(false && "ConstructorCall::assemble not yet implemented");
-		/* TODO
-		 * for "struct foo { int a; bool b; }" we have:
-		 * %foo = type { i32, i1 }
-		 * define void @foo.new(%foo* %this) {
-		 * 		ret void
-		 * }
-		 *
-		 * Kensho				LLVM
-		 *
-		 * foo bar;				%bar = alloca %foo* ; yields %foo**
-		 * bar = new foo();		%tmp = malloc %foo	; yields %foo*
-		 * 						store %foo* %tmp, %foo** %bar
-		 * 						call void @foo.new(%foo* %bar)
-		 *
-		 * variables access then yields
-		 * %bar1 = load %foo** %bar ; yields %foo*
-		 *
-		 * member access must only work on pointers to struct types:
-		 * "bar.a = 3" must result in
-		 * %a = getelementptr %foo* %bar1, i32 0, i32 0 ; yields i32*
-		 * store i32 3, i32* %a
-		 */
+		StructType* sty = mb.getUserType(name);
+		if (sty == NULL) {
+			throw(ParseError("cannot construct undeclared type " + name,
+				getLine(), getOffset()));
+		}
+
+		const llvm::Type* ty = sty->getAssemblyType();
+		const llvm::PointerType* pty = llvm::cast<llvm::PointerType>(ty);
+		assert(pty != NULL && "struct type assembly must be pointer type");
+		const llvm::Type* ety = pty->getElementType();
+		ptr = mb.getIRBuilder().CreateMalloc(ety, 0, std::string(name + "Ref").c_str());
+		arguments.insert(arguments.begin(), new ContextPointer(ptr));
+
+		name = name + ".new";
+
+		Call::assemble(mb);
+
+		value = ptr;
 	}

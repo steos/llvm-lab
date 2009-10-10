@@ -22,6 +22,29 @@
 
 using namespace kensho;
 
+	std::vector<llvm::Value*> ast::Call::prepareParameters(Callable* fun, ModuleBuilder& mb) {
+		uint32_t numParams = fun->countParameters();
+		if (numParams != arguments.size()) {
+			throw(ParseError("argument count mismatch in call to function " + name,
+				getLine(), getOffset()));
+		}
+		std::vector<Type*> expected = fun->getParameterTypes();
+		std::vector<llvm::Value*> values;
+		for (uint32_t i = 0; i < numParams; ++i) {
+			Node* arg = arguments.at(i);
+			llvm::Value* val = arg->emit(mb);
+			if (expected.at(i)->getAssemblyType() != val->getType()) {
+				expected.at(i)->getAssemblyType()->dump();
+				val->getType()->dump();
+				throw(ParseError("type mismatch in call to function " + name
+					+ " for argument #" + boost::lexical_cast<std::string>(i),
+					getLine(), getOffset()));
+			}
+			values.push_back(val);
+		}
+		return values;
+	}
+
 	void ast::Call::assemble(ast::ModuleBuilder& mb) {
 		Callable* fun = mb.getFunction(name);
 		if (fun == NULL) {
@@ -29,25 +52,7 @@ using namespace kensho;
 				getLine(), getOffset()));
 		}
 
-		uint32_t numParams = fun->countParameters();
-		if (numParams != arguments.size()) {
-			throw(ParseError("argument count mismatch in call to function " + name,
-				getLine(), getOffset()));
-		}
-
-		std::vector<Type*> expected = fun->getParameterTypes();
-		std::vector<llvm::Value*> values;
-
-		for (uint32_t i = 0; i < numParams; ++i) {
-			Node* arg = arguments.at(i);
-			llvm::Value* val = arg->emit(mb);
-			if (expected.at(i)->getAssemblyType() != val->getType()) {
-				throw(ParseError("type mismatch in call to function " + name
-					+ " for argument #" + boost::lexical_cast<std::string>(i),
-					getLine(), getOffset()));
-			}
-			values.push_back(val);
-		}
+		std::vector<llvm::Value*> values = prepareParameters(fun, mb);
 
 		value = mb.getIRBuilder().CreateCall(
 			fun->getValue(), values.begin(), values.end());

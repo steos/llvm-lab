@@ -101,7 +101,10 @@ using namespace kensho;
 	}
 
 	void ast::Struct::emitDefinition(ModuleBuilder& mb) {
-		mb.getModule()->addTypeName(name, type->getAssemblyType());
+		const llvm::Type* ty = type->getAssemblyType();
+		mb.getModule()->addTypeName(name + "Ptr", ty);
+		const llvm::PointerType* pty = llvm::cast<llvm::PointerType>(ty);
+		mb.getModule()->addTypeName(name, pty->getElementType());
 		emitConstructorDefinition(mb);
 		if (hasDestructor()) {
 			emitDestructorDefinition(mb);

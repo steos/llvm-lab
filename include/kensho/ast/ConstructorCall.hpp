@@ -25,8 +25,20 @@ namespace ast {
 	 * constructor call
 	 */
 	class ConstructorCall : public Call {
+	private:
+		class ContextPointer : public Node {
+		protected:
+			void assemble(ModuleBuilder& mb) {
+				// noop
+			}
+		public:
+			ContextPointer(llvm::Value* val) {
+				value = val;
+			}
+		};
 	protected:
-		virtual void assemble(ModuleBuilder& mb);
+		llvm::Value* ptr;
+		void assemble(ModuleBuilder& mb);
 	public:
 		ConstructorCall(std::string name) : Call(name) {};
 	};
