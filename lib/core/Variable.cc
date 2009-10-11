@@ -32,5 +32,5 @@ using namespace kensho;
 
 		assert(sym != NULL && "variable access can only performed on mutable symbols");
 
-		value = sym->load(mb);
+		value = sym->assembleLoad(mb);
 	}

@@ -24,6 +24,14 @@ using namespace kensho;
 		// noop
 	}
 
+	llvm::Value* ast::Callable::assembleCall(std::vector<llvm::Value*>& args, ModuleBuilder& mb) {
+		return mb.getIRBuilder().CreateCall(value, args.begin(), args.end());
+	}
+
+	llvm::FunctionType* ast::Callable::createType(std::vector<const llvm::Type*>& params) {
+		return llvm::FunctionType::get(type->getAssemblyType(), params, false);
+	}
+
 	void ast::Callable::emitDefinition(ast::ModuleBuilder& mb) {
 		if (mb.isFunctionDeclared(name)) {
 			throw(ParseError("function " + name + " is already declared",
@@ -35,8 +43,7 @@ using namespace kensho;
 			const llvm::Type* llvmTy = (*it)->getAssemblyType();
 			paramTypes.push_back(llvmTy);
 		}
-		llvm::FunctionType* funtype = llvm::FunctionType::get(
-			type->getAssemblyType(), paramTypes, false);
+		llvm::FunctionType* funtype = createType(paramTypes);
 		llvm::Function* fun = llvm::Function::Create(
 			funtype, llvm::Function::ExternalLinkage, name, mb.getModule());
 

@@ -44,10 +44,11 @@ namespace ast {
 
 		Struct* parent;
 		bool defStatic;
+		llvm::Value* contextPtr;
 
 	protected:
 
-		void assembleParameters(llvm::Function*, ModuleBuilder&);
+		void assembleParameters(llvm::Function*, llvm::Function::arg_iterator begin, ModuleBuilder&);
 
 	public:
 		StructFunction(Struct* parent, std::string name, Type* type) :
@@ -60,7 +61,9 @@ namespace ast {
 
 		void assemble(ModuleBuilder&);
 
-		void prepareCall(std::vector<Node*>* args, ModuleBuilder& mb);
+		llvm::Value* assembleCall(std::vector<llvm::Value*>& args, ModuleBuilder& mb);
+
+		llvm::FunctionType* createType(std::vector<const llvm::Type*>& params);
 
 		void setStatic(bool defStatic) {
 			this->defStatic = defStatic;
@@ -88,9 +91,9 @@ namespace ast {
 
 		void assemble(ModuleBuilder& mb);
 
-		llvm::Value* store(llvm::Value*, ModuleBuilder&);
+		llvm::Value* assembleStore(llvm::Value*, ModuleBuilder&);
 
-		llvm::Value* load(ModuleBuilder&);
+		llvm::Value* assembleLoad(ModuleBuilder&);
 	};
 
 	/*

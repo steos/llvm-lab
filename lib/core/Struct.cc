@@ -26,10 +26,10 @@
 using namespace kensho;
 
 	void ast::StructVariableDefinition::assemble(ModuleBuilder& mb) {
-		store(type->getDefaultValue(), mb);
+		assembleStore(type->getDefaultValue(), mb);
 	}
 
-	llvm::Value* ast::StructVariableDefinition::load(ModuleBuilder& mb) {
+	llvm::Value* ast::StructVariableDefinition::assembleLoad(ModuleBuilder& mb) {
 		if (!mb.getSymbolScope().hasContextPointer()) {
 			throw(ParseError("instance variable " + name + " not availabe in static scope"));
 		}
@@ -38,7 +38,7 @@ using namespace kensho;
 		return mb.getIRBuilder().CreateLoad(varPtr, name.c_str());
 	}
 
-	llvm::Value* ast::StructVariableDefinition::store(llvm::Value* val, ModuleBuilder& mb) {
+	llvm::Value* ast::StructVariableDefinition::assembleStore(llvm::Value* val, ModuleBuilder& mb) {
 		if (!mb.getSymbolScope().hasContextPointer()) {
 			throw(ParseError("instance variable " + name + " not availabe in static scope"));
 		}
@@ -118,25 +118,34 @@ using namespace kensho;
 
 	void::ast::StructFunction::emitDefinition(ModuleBuilder& mb) {
 		name = parent->getName() + "." + name;
-		if (defStatic == false) {
-			Type* ty = parent->getType();
-			prependNamedParameter("this", ty);
-		}
 		AbstractFunction::emitDefinition(mb);
 	}
 
-	void ast::StructFunction::prepareCall(std::vector<Node*>* args, ModuleBuilder& mb) {
-		// inject this pointer if there is one
-		if (defStatic == false && mb.getSymbolScope().hasContextPointer()) {
-			args->insert(args->begin(), new FakeNode(mb.getSymbolScope().getContextPointer()));
+	llvm::FunctionType* ast::StructFunction::createType(std::vector<const llvm::Type*>& params) {
+		if (defStatic == false) {
+			params.insert(params.begin(), parent->getType()->getAssemblyType());
 		}
+		return AbstractFunction::createType(params);
 	}
 
-	void ast::StructFunction::assembleParameters(llvm::Function* fun, ModuleBuilder& mb) {
-		AbstractFunction::assembleParameters(fun, mb);
+	llvm::Value* ast::StructFunction::assembleCall(std::vector<llvm::Value*>& args, ModuleBuilder& mb) {
+		if (defStatic == false && mb.getSymbolScope().hasContextPointer()) {
+			args.insert(args.begin(), mb.getSymbolScope().getContextPointer());
+		}
+		return AbstractFunction::assembleCall(args, mb);
+	}
+
+	void ast::StructFunction::assembleParameters(llvm::Function* fun,
+		llvm::Function::arg_iterator begin, ModuleBuilder& mb) {
 		if (defStatic == false) {
-			assert(parameterValues.size() > 0);
-			mb.getSymbolScope().installContextPointer(parameterValues.at(0));
+			begin->setName("this");
+			contextPtr = begin;
+			++begin;
+		}
+		AbstractFunction::assembleParameters(fun, begin, mb);
+		if (defStatic == false) {
+			assert(contextPtr != NULL);
+			mb.getSymbolScope().installContextPointer(contextPtr);
 		}
 	}
 

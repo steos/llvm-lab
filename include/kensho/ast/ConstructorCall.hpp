@@ -28,6 +28,8 @@ namespace ast {
 	protected:
 		llvm::Value* ptr;
 		void assemble(ModuleBuilder& mb);
+		std::vector<llvm::Value*> prepareParameters(Callable* fun, ModuleBuilder& mb);
+
 	public:
 		ConstructorCall(std::string name) : Call(name) {};
 	};

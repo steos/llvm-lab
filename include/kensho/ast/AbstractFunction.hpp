@@ -17,6 +17,7 @@
 #define KENSHO_AST_ABSTRACTFUNCTION_HPP_
 
 #include <kensho/ast/Callable.hpp>
+#include <llvm/Function.h>
 
 namespace kensho {
 namespace ast {
@@ -30,9 +31,9 @@ namespace ast {
 
 		std::vector<std::string> parameterNames;
 		std::vector<Buildable*> body;
-		std::vector<llvm::Value*> parameterValues;
 
-		virtual void assembleParameters(llvm::Function*, ModuleBuilder&);
+		virtual void assembleParameters(llvm::Function*,
+			llvm::Function::arg_iterator begin, ModuleBuilder&);
 
 	public:
 
@@ -45,11 +46,6 @@ namespace ast {
 		void addNamedParameter(std::string name, Type* type) {
 			Callable::addParameter(type);
 			parameterNames.push_back(name);
-		}
-
-		void prependNamedParameter(std::string name, Type* type) {
-			Callable::prependParameter(type);
-			parameterNames.insert(parameterNames.begin(), 1, name);
 		}
 
 		void addBodyNode(Buildable* node) {

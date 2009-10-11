@@ -65,9 +65,9 @@ namespace ast {
 		MutableSymbol(std::string name, Type* type) :
 			Symbol(name, type) {};
 
-		virtual llvm::Value* store(llvm::Value*, ModuleBuilder&) = 0;
+		virtual llvm::Value* assembleStore(llvm::Value*, ModuleBuilder&) = 0;
 
-		virtual llvm::Value* load(ModuleBuilder&) = 0;
+		virtual llvm::Value* assembleLoad(ModuleBuilder&) = 0;
 	};
 
 }}

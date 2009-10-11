@@ -50,19 +50,6 @@ namespace ast {
 		}
 	};
 
-	/*
-	 * FakeNode is useful to inject llvm values directly
-	 */
-	class FakeNode : public Node {
-	public:
-		FakeNode(llvm::Value* value) {
-			this->value = value;
-		}
-		void assemble(ModuleBuilder& mb) {
-			// noop
-		}
-	};
-
 }} // end ns
 
 #endif /* KENSHO_AST_NODE_HPP_ */

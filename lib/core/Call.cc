@@ -50,9 +50,6 @@ using namespace kensho;
 				getLine(), getOffset()));
 		}
 
-		fun->prepareCall(&arguments, mb);
 		std::vector<llvm::Value*> values = prepareParameters(fun, mb);
-
-		value = mb.getIRBuilder().CreateCall(
-			fun->getValue(), values.begin(), values.end());
+		value = fun->assembleCall(values, mb);
 	}

@@ -58,5 +58,5 @@ using namespace kensho;
 			}
 		}
 
-		value = vardef->store(valRight, mb);
+		value = vardef->assembleStore(valRight, mb);
 	}

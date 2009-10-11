@@ -37,9 +37,9 @@ namespace ast {
 			return type;
 		}
 
-		llvm::Value* load(ModuleBuilder&);
+		llvm::Value* assembleLoad(ModuleBuilder&);
 
-		llvm::Value* store(llvm::Value*, ModuleBuilder&);
+		llvm::Value* assembleStore(llvm::Value*, ModuleBuilder&);
 	};
 
 	inline void VariableDefinition::setName(std::string name) {

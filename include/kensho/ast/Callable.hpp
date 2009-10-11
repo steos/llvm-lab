@@ -37,9 +37,9 @@ namespace ast {
 		Callable(std::string name, Type* type) :
 			Symbol(name, type) {};
 
-		virtual void prepareCall(std::vector<Node*>* args, ModuleBuilder& mb) {
-			// default is noop
-		}
+		virtual llvm::Value* assembleCall(std::vector<llvm::Value*>& args, ModuleBuilder& mb);
+
+		virtual llvm::FunctionType* createType(std::vector<const llvm::Type*>& params);
 
 		virtual void assemble(ModuleBuilder& mb);
 
@@ -47,10 +47,6 @@ namespace ast {
 
 		virtual void addParameter(Type* type) {
 			parameterTypes.push_back(type);
-		}
-
-		virtual void prependParameter(Type* type) {
-			parameterTypes.insert(parameterTypes.begin(), type);
 		}
 
 		std::vector<Type*> getParameterTypes() {

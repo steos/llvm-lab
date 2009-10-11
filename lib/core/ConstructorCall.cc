@@ -20,6 +20,12 @@
 
 using namespace kensho;
 
+	std::vector<llvm::Value*> ast::ConstructorCall::prepareParameters(Callable* fun, ModuleBuilder& mb) {
+		std::vector<llvm::Value*> args = Call::prepareParameters(fun, mb);
+		args.insert(args.begin(), ptr);
+		return args;
+	}
+
 	void ast::ConstructorCall::assemble(ast::ModuleBuilder& mb) {
 		StructType* sty = mb.getUserType(name);
 		if (sty == NULL) {
@@ -32,7 +38,6 @@ using namespace kensho;
 		assert(pty != NULL && "struct type assembly must be pointer type");
 		const llvm::Type* ety = pty->getElementType();
 		ptr = mb.getIRBuilder().CreateMalloc(ety, 0, std::string(name + "Ref").c_str());
-		arguments.insert(arguments.begin(), new FakeNode(ptr));
 
 		name = name + ".new";
 
