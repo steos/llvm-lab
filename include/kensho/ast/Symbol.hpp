@@ -56,6 +56,10 @@ namespace ast {
 			return name;
 		}
 
+		virtual bool isHidable() {
+			return false;
+		}
+
 		virtual ~Symbol() {};
 	};
 

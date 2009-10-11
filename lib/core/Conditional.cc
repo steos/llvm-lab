@@ -57,6 +57,8 @@ using namespace kensho;
 		// emit conditional branch
 		mb.getIRBuilder().CreateCondBr(exval, trueBlock, firstAlt);
 
+		// introduce true-block-scope
+		mb.getSymbolScope().push();
 		// emit true block
 		mb.getIRBuilder().SetInsertPoint(trueBlock);
 		for (uint32_t i = 0; i < trueBody.size(); ++i) {
@@ -66,6 +68,9 @@ using namespace kensho;
 					getLine(), getOffset()));
 			}
 		}
+		// pop true-block-scope
+		mb.getSymbolScope().pop();
+
 		// we must only emit a branch to the next block
 		// if the true body contained no return statement
 		if (trueBody.size() > 0
@@ -100,6 +105,8 @@ using namespace kensho;
 				// emit conditional branch
 				mb.getIRBuilder().CreateCondBr(val, branchBlock, nextAlt);
 
+				// introduce elseif scope
+				mb.getSymbolScope().push();
 				// emit branch body
 				fun->getBasicBlockList().push_back(branchBlock);
 				mb.getIRBuilder().SetInsertPoint(branchBlock);
@@ -111,6 +118,8 @@ using namespace kensho;
 							getLine(), getOffset()));
 					}
 				}
+				// remove elseif scope
+				mb.getSymbolScope().pop();
 				// we must only emit a branch to the next block
 				// if the true body contained no return statement
 				if (cond->trueBody.size() > 0
@@ -122,6 +131,8 @@ using namespace kensho;
 
 		// emit else block if we have one
 		if (hasElse) {
+			// introduce else scope
+			mb.getSymbolScope().push();
 			fun->getBasicBlockList().push_back(falseBlock);
 			mb.getIRBuilder().SetInsertPoint(falseBlock);
 			for (uint32_t i = 0; i < falseBody.size(); ++i) {
@@ -131,6 +142,8 @@ using namespace kensho;
 						getLine(), getOffset()));
 				}
 			}
+			// drop else scope
+			mb.getSymbolScope().pop();
 			// we must only emit a branch to the next block
 			// if the false body contained no return statement
 			if (falseBody.size() > 0

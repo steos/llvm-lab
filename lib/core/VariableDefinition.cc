@@ -32,7 +32,8 @@ using namespace kensho;
 
 	void ast::VariableDefinition::assemble(ast::ModuleBuilder& mb) {
 		// if a variable with this name already exists bail out
-		if (mb.getSymbolScope().isDeclared(name)) {
+		Symbol* sym = mb.getSymbolScope().getSymbol(name);
+		if (sym != NULL && (!sym->isHidable() || mb.getSymbolScope().isCurrentDeclared(name))) {
 			throw(ParseError("symbol " + name + " is already declared",
 				getLine(), getOffset()));
 		}

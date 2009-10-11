@@ -94,6 +94,10 @@ namespace ast {
 		llvm::Value* assembleStore(llvm::Value*, ModuleBuilder&);
 
 		llvm::Value* assembleLoad(ModuleBuilder&);
+
+		bool isHidable() {
+			return true;
+		}
 	};
 
 	/*

@@ -37,6 +37,9 @@ using namespace kensho;
 		llvm::Value* exval = expression->emit(mb);
 		mb.getIRBuilder().CreateCondBr(exval, bodyBlock, merge);
 
+		// introduce new scope level
+		mb.getSymbolScope().push();
+
 		// emit while body
 		fun->getBasicBlockList().push_back(bodyBlock);
 		mb.getIRBuilder().SetInsertPoint(bodyBlock);
@@ -44,6 +47,9 @@ using namespace kensho;
 		for (uint32_t i = 0; i < stats; ++i) {
 			body.at(i)->assemble(mb);
 		}
+		// drop last scope level
+		mb.getSymbolScope().pop();
+
 		// if last statement in the while is no return statement
 		// we must emit an unconditional branch back to the while condition block
 		if (false == body.at(stats - 1)->isReturnStatement()) {

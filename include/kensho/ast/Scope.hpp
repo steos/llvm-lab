@@ -40,6 +40,7 @@ namespace ast {
 		uint32_t current;
 		llvm::Value* context;
 	public:
+
 		Scope() : current(0), context(NULL) {
 			stack.push_back(std::map<std::string, Symbol*>());
 		};
@@ -86,6 +87,10 @@ namespace ast {
 				}
 			}
 			return false;
+		}
+
+		bool isCurrentDeclared(const std::string& name) {
+			return stack[current].count(name) > 0;
 		}
 
 		/*
