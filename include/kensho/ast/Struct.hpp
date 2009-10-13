@@ -20,8 +20,8 @@
 #include <kensho/ast/AbstractFunction.hpp>
 #include <kensho/ast/FunctionFactory.hpp>
 #include <kensho/ast/VariableDefinition.hpp>
-#include <kensho/ast/ScopeProvider.hpp>
 #include <kensho/ast/FunctionProvider.hpp>
+#include <kensho/ast/Context.hpp>
 
 #include <llvm/DerivedTypes.h>
 #include <llvm/ADT/StringMap.h>
@@ -104,18 +104,17 @@ namespace ast {
 	 * a struct definition
 	 */
 	class Struct : public Buildable, public FunctionFactory,
-		public ScopeProvider, public FunctionProvider {
+		public FunctionProvider {
 	public:
 
 		std::string name;
 		StructType* type;
 		std::vector<StructFunction*> functions;
-		std::vector<VariableDefinition*> variables;
+		std::vector<StructVariableDefinition*> variables;
 		std::map<std::string, int> varmap;
 		StructFunction* ctor;
 		StructFunction* dtor;
 		std::vector<Buildable*> dtorBody;
-		Scope symbols;
 		llvm::StringMap<int> functionMap;
 
 		void emitConstructorDefinition(ModuleBuilder&);
@@ -164,9 +163,17 @@ namespace ast {
 		}
 
 		void addVariableDefinition(VariableDefinition* vardef) {
-			variables.push_back(vardef);
+			// TODO create structvars in treeparser
+			StructVariableDefinition* def = new StructVariableDefinition(
+				this,
+				vardef->getName(),
+				vardef->getType(),
+				variables.size()
+			);
+			variables.push_back(def);
 			// start the index at 1
 			varmap[vardef->getName()] = variables.size();
+			delete vardef;
 		}
 
 		void setConstructor(StructFunction* ctor) {
@@ -191,10 +198,6 @@ namespace ast {
 
 		void emitDefinition(ModuleBuilder& mb);
 
-		Scope& getScope() {
-			return symbols;
-		}
-
 		StructFunction* getConstructor() {
 			return ctor;
 		}
@@ -209,6 +212,39 @@ namespace ast {
 
 		StructType* getType() {
 			return type;
+		}
+
+		StructVariableDefinition* getVariable(uint32_t index) {
+			assert(index < variables.size());
+			return variables[index];
+		}
+	};
+
+	class StructContext : public Context {
+	protected:
+		llvm::Value* contextPointer;
+		Struct* def;
+	public:
+		StructContext() : contextPointer(NULL), def(NULL) {};
+
+		StructContext(Struct* def) : contextPointer(NULL), def(def) {};
+
+		StructContext(Struct* def, llvm::Value* ctx) : contextPointer(ctx), def(def) {};
+
+		llvm::Value* getPointer() {
+			return contextPointer;
+		}
+
+		Struct* getDefinition() {
+			return def;
+		}
+
+		Symbol* getSymbol(const std::string& name) {
+			int idx = def->getVariableIndex(name);
+			if (idx > -1) {
+				return def->getVariable(idx);
+			}
+			return NULL;
 		}
 	};
 

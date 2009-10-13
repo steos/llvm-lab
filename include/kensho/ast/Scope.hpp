@@ -17,6 +17,7 @@
 #define KENSHO_AST_SCOPE_HPP_
 
 #include <kensho/ast/Symbol.hpp>
+#include <kensho/ast/Context.hpp>
 
 #include <string>
 #include <vector>
@@ -38,26 +39,30 @@ namespace ast {
 	private:
 		std::vector<std::map<std::string, Symbol*> > stack;
 		uint32_t current;
-		llvm::Value* context;
+		Context* context;
 	public:
 
 		Scope() : current(0), context(NULL) {
 			stack.push_back(std::map<std::string, Symbol*>());
 		};
 
-		void installContextPointer(llvm::Value* context) {
-			this->context = context;
+		void setContext(Context* ctx) {
+			context = ctx;
 		}
 
-		void uninstallContextPointer() {
-			this->context = NULL;
+		void unsetContext() {
+			context = NULL;
 		}
 
-		bool hasContextPointer() {
+		bool hasContext() {
 			return context != NULL;
 		}
 
 		llvm::Value* getContextPointer() {
+			return context->getPointer();
+		}
+
+		Context* getContext() {
 			return context;
 		}
 

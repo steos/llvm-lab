@@ -19,7 +19,7 @@
 #include <kensho/ast/tokens.hpp>
 #include <kensho/ast/Type.hpp>
 #include <kensho/ast/Symbol.hpp>
-#include <kensho/ast/ScopeProvider.hpp>
+#include <kensho/ast/Scope.hpp>
 #include <kensho/ast/FunctionProvider.hpp>
 
 #include <llvm/ADT/StringMap.h>
@@ -50,7 +50,7 @@ namespace ast {
 		llvm::IRBuilder<> irBuilder;
 		std::vector<Callable*> functions;
 		std::vector<ast::Struct*> structs;
-		ScopeProvider* symbolScopeProvider;
+		Scope symbols;
 		llvm::StringMap<StructType*> types;
 		llvm::StringMap<Callable*> funcs;
 		llvm::FunctionPassManager* fpm;
@@ -68,7 +68,7 @@ namespace ast {
 	public:
 
 		ModuleBuilder(std::string name) :
-			module(name), symbolScopeProvider(NULL), functionProvider(NULL) {};
+			module(name), functionProvider(NULL) {};
 
 		void installFunctionProvider(FunctionProvider* fp) {
 			functionProvider = fp;
@@ -98,6 +98,14 @@ namespace ast {
 				}
 			}
 			return funcs[name];
+		}
+
+		Symbol* getSymbol(const std::string& name) {
+			Symbol* sym = symbols.getSymbol(name);
+			if (sym == NULL && symbols.hasContext()) {
+				sym = symbols.getContext()->getSymbol(name);
+			}
+			return sym;
 		}
 
 		bool isUserTypeDeclared(std::string name) {
@@ -141,21 +149,8 @@ namespace ast {
 				createType(name) : createType(token);
 		}
 
-		void installSymbolScopeProvider(ScopeProvider* sp) {
-			symbolScopeProvider = sp;
-		}
-
-		void uninstallSymbolScopeProvider() {
-			symbolScopeProvider = NULL;
-		}
-
-		ScopeProvider* getSymbolScopeProvider() {
-			return symbolScopeProvider;
-		}
-
 		Scope& getSymbolScope() {
-			assert(symbolScopeProvider != NULL);
-			return symbolScopeProvider->getScope();
+			return symbols;
 		}
 
 		llvm::IRBuilder<>& getIRBuilder() {

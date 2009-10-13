@@ -34,7 +34,7 @@ using namespace kensho;
 				getLine(), getOffset()));
 		}
 
-		Symbol* sym = mb.getSymbolScope().getSymbol(var->getName());
+		Symbol* sym = mb.getSymbol(var->getName());
 
 		if (sym == NULL) {
 			throw(ParseError("variable " + var->getName() + " is not declared",

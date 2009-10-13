@@ -13,29 +13,26 @@
  * along with Kensho.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef KENSHO_AST_SYMBOLSCOPE_HPP_
-#define KENSHO_AST_SYMBOLSCOPE_HPP_
+#ifndef KENSHO_AST_CONTEXT_HPP_
+#define KENSHO_AST_CONTEXT_HPP_
 
-#include <kensho/ast/Scope.hpp>
+#include <kensho/ast/SymbolProvider.hpp>
 
 namespace kensho {
 namespace ast {
 
-	/*
-	 * The ScopeProvider interface defines the API
-	 * everyone who wants to introduce and manage a scope.
-	 */
-	class ScopeProvider {
+	class Struct;
+
+	class Context : public SymbolProvider {
 	public:
+		virtual llvm::Value* getPointer() = 0;
 
-		/*
-		 * retrieves the scope
-		 */
-		virtual Scope& getScope() = 0;
+		virtual Struct* getDefinition() = 0;
 
-		virtual ~ScopeProvider() {};
+		virtual Symbol* getSymbol(const std::string& name) = 0;
 	};
 
-}}
 
-#endif /* KENSHO_AST_SYMBOLSCOPE_HPP_ */
+}} // end ns
+
+#endif /* KENSHO_AST_CONTEXT_HPP_ */

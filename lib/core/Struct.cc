@@ -30,7 +30,7 @@ using namespace kensho;
 	}
 
 	llvm::Value* ast::StructVariableDefinition::assembleLoad(ModuleBuilder& mb) {
-		if (!mb.getSymbolScope().hasContextPointer()) {
+		if (!mb.getSymbolScope().hasContext()) {
 			throw(ParseError("instance variable " + name + " not availabe in static scope"));
 		}
 		llvm::Value* ptr = mb.getSymbolScope().getContextPointer();
@@ -39,7 +39,7 @@ using namespace kensho;
 	}
 
 	llvm::Value* ast::StructVariableDefinition::assembleStore(llvm::Value* val, ModuleBuilder& mb) {
-		if (!mb.getSymbolScope().hasContextPointer()) {
+		if (!mb.getSymbolScope().hasContext()) {
 			throw(ParseError("instance variable " + name + " not availabe in static scope"));
 		}
 		llvm::Value* ptr = mb.getSymbolScope().getContextPointer();
@@ -48,16 +48,15 @@ using namespace kensho;
 	}
 
 	void ast::Struct::assemble(ModuleBuilder& mb) {
-		mb.installSymbolScopeProvider(this);
 		mb.installFunctionProvider(this);
 
 		// declare variables and insert initializations into the constructor
 		for (uint32_t i = 0; i < variables.size(); ++i) {
-			VariableDefinition* def = variables[i];
-			StructVariableDefinition* var = new StructVariableDefinition(
-				this, def->getName(), def->getType(), i);
-			symbols.declareSymbol(var);
-			ctor->insertBodyNode(var);
+			StructVariableDefinition* def = variables[i];
+//			StructVariableDefinition* var = new StructVariableDefinition(
+//				this, def->getName(), def->getType(), i);
+//			symbols.declareSymbol(var);
+			ctor->insertBodyNode(def);
 		}
 
 		mb.getSymbolScope().push();
@@ -73,7 +72,6 @@ using namespace kensho;
 		}
 
 		mb.uninstallFunctionProvider();
-		mb.uninstallSymbolScopeProvider();
 	}
 
 	void ast::Struct::constructType(StructType* ty) {
@@ -129,7 +127,7 @@ using namespace kensho;
 	}
 
 	llvm::Value* ast::StructFunction::assembleCall(std::vector<llvm::Value*>& args, ModuleBuilder& mb) {
-		if (defStatic == false && mb.getSymbolScope().hasContextPointer()) {
+		if (defStatic == false && mb.getSymbolScope().hasContext()) {
 			args.insert(args.begin(), mb.getSymbolScope().getContextPointer());
 		}
 		return AbstractFunction::assembleCall(args, mb);
@@ -145,13 +143,14 @@ using namespace kensho;
 		AbstractFunction::assembleParameters(fun, begin, mb);
 		if (defStatic == false) {
 			assert(contextPtr != NULL);
-			mb.getSymbolScope().installContextPointer(contextPtr);
+			mb.getSymbolScope().setContext(new StructContext(parent, contextPtr));
 		}
 	}
 
 	void ast::StructFunction::assemble(ModuleBuilder& mb) {
 		AbstractFunction::assemble(mb);
 		if (defStatic == false) {
-			mb.getSymbolScope().uninstallContextPointer();
+			mb.getSymbolScope().unsetContext();
 		}
+		mb.getSymbolScope().clearSymbols();
 	}

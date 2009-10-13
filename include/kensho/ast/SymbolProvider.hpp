@@ -13,12 +13,21 @@
  * along with Kensho.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <kensho/ast/Function.hpp>
-#include <kensho/ast/ModuleBuilder.hpp>
+#ifndef KENSHO_AST_SYMBOLPROVIDER_HPP_
+#define KENSHO_AST_SYMBOLPROVIDER_HPP_
 
-using namespace kensho;
+namespace kensho {
+namespace ast {
 
-	void ast::Function::assemble(ast::ModuleBuilder& mb) {
-		AbstractFunction::assemble(mb);
-		mb.getSymbolScope().clearSymbols();
-	}
+	class Symbol;
+
+	class SymbolProvider {
+	public:
+		virtual Symbol* getSymbol(const std::string& name) = 0;
+
+		virtual ~SymbolProvider() {};
+	};
+
+}} // end ns
+
+#endif /* KENSHO_AST_SYMBOLPROVIDER_HPP_ */

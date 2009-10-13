@@ -21,7 +21,7 @@
 using namespace kensho;
 
 	void ast::Variable::assemble(ast::ModuleBuilder& mb) {
-		Symbol* var = mb.getSymbolScope().getSymbol(name);
+		Symbol* var = mb.getSymbol(name);
 		if (var == NULL) {
 			throw(ParseError("variable " + name + " is not declared",
 				getLine(), getOffset()));
